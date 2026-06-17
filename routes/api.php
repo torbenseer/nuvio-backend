@@ -175,7 +175,7 @@ Route::middleware(['web', 'auth'])->group(function (): void {
         }
 
         [$review, $node, $mastery] = DB::transaction(function () use ($answer, $graded, $request, $reviews, $taskAttempt): array {
-            $review = $reviews->recordTaskOutcome($request->user(), $taskAttempt->task, $graded['result']);
+            $review = $reviews->recordTaskOutcome($request->user(), $taskAttempt->task, $graded['result'], $taskAttempt->taskVersion);
 
             $taskAttempt->forceFill([
                 'status' => 'submitted',
@@ -220,7 +220,7 @@ Route::middleware(['web', 'auth'])->group(function (): void {
         abort_unless($review->user_id === $request->user()->id, 403);
 
         $task = $review->task;
-        $version = $task->activeVersion()->firstOrFail();
+        $version = $review->taskVersion ?? $task->activeVersion()->firstOrFail();
 
         return [
             'data' => [
@@ -263,7 +263,7 @@ Route::middleware(['web', 'auth'])->group(function (): void {
             ]);
         }
 
-        $version = $review->task->activeVersion()->firstOrFail();
+        $version = $review->taskVersion ?? $review->task->activeVersion()->firstOrFail();
 
         if ($hasResult) {
             $validated = $request->validate([

@@ -6,14 +6,16 @@ use App\Models\LearningNode;
 use App\Models\MasteryState;
 use App\Models\Review;
 use App\Models\Task;
+use App\Models\TaskVersion;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 
 class ReviewScheduler
 {
-    public function recordTaskOutcome(User $user, Task $task, string $result): ?Review
+    public function recordTaskOutcome(User $user, Task $task, string $result, ?TaskVersion $taskVersion = null): ?Review
     {
         $node = $this->primaryNode($task);
+        $taskVersion ??= $task->activeVersion()->first();
 
         if ($result === 'correct') {
             $this->setMasteryStatus($user, $node, 'practiced');
@@ -23,7 +25,7 @@ class ReviewScheduler
 
         $this->setMasteryStatus($user, $node, 'review_due');
 
-        return $this->createOrUpdateReview($user, $node, $task);
+        return $this->createOrUpdateReview($user, $node, $task, $taskVersion);
     }
 
     public function recordReviewOutcome(User $user, Review $review, string $result): void
@@ -52,7 +54,7 @@ class ReviewScheduler
         $this->setMasteryStatus($user, $review->learningNode, 'review_due');
     }
 
-    private function createOrUpdateReview(User $user, LearningNode $node, Task $task): Review
+    private function createOrUpdateReview(User $user, LearningNode $node, Task $task, ?TaskVersion $taskVersion): Review
     {
         $review = Review::query()
             ->where('user_id', $user->id)
@@ -70,6 +72,7 @@ class ReviewScheduler
         }
 
         $review->status = 'scheduled';
+        $review->task_version_id = $taskVersion?->id;
         $review->due_at = Carbon::now()->addDay();
         $review->interval_days = 1;
         $review->completed_at = null;

@@ -12,6 +12,7 @@ class Review extends Model
         'user_id',
         'learning_node_id',
         'task_id',
+        'task_version_id',
         'status',
         'due_at',
         'interval_days',
@@ -42,6 +43,11 @@ class Review extends Model
     public function task(): BelongsTo
     {
         return $this->belongsTo(Task::class);
+    }
+
+    public function taskVersion(): BelongsTo
+    {
+        return $this->belongsTo(TaskVersion::class);
     }
 
     public function attempts(): HasMany
