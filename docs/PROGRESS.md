@@ -221,3 +221,31 @@ Open risks:
 Next:
 
 - Align backend planning docs with the completed V1 state, then run the full backend test suite and update the root backend submodule pointer.
+
+## 2026-06-17 - Backend Roadmap Alignment
+
+Status: completed.
+
+Changed:
+
+- Added backend agent and domain-language entry points.
+- Added `docs/00_START_HERE.md` and `docs/14_RELEASE_ROADMAP.md`.
+- Aligned backend planning docs around V1 completed, B4 hardening next, and frontend planning allowed only after explicit start.
+- Preserved Motivation Without Pressure guardrails across API, scope, roadmap, workflow, and test planning docs.
+
+Commit:
+
+- `a3b7375 docs: align backend roadmap with v1 loop`
+
+Checks:
+
+- `php artisan test` passed: 27 tests, 184 assertions.
+
+Open risks:
+
+- Full B4 API hardening remains open: preferences, node APIs, review due/snooze, path progress, validation matrix, ownership matrix, and full Sanctum/CORS/browser-origin hardening.
+- Frontend docs still need their own planning-only commit and root submodule pointers still need updating.
+
+Next:
+
+- Commit frontend planning docs, then update root submodule pointers.
