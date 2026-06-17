@@ -249,3 +249,35 @@ Open risks:
 Next:
 
 - Commit frontend planning docs, then update root submodule pointers.
+
+## 2026-06-18 - B4 User Preferences Endpoint
+
+Status: completed.
+
+Changed:
+
+- Checked the current session hardening surface: local web session login/logout routes exist and are tested, `laravel/sanctum` is not installed, `config/cors.php` is not present, and session cookie settings are still env-driven defaults.
+- Added `PUT /api/user/preferences` behind the existing `web` plus `auth` API route group.
+- Persisted the authenticated user's narrow `locale` and `timezone` preferences.
+- Added validation for supported Slice 1 UI locales (`de`, `en`) and IANA timezones.
+- Added feature coverage for authenticated updates, unauthenticated rejection, required fields, unsupported locales, invalid timezones, and `GET /api/user` reflecting persisted preferences.
+
+Commit:
+
+- `aa23044 feat: add user preferences endpoint`
+
+Checks:
+
+- `php artisan test --filter=UserEndpointTest` passed: 5 tests, 19 assertions.
+- `php artisan test --filter='UserEndpointTest|AuthSessionTest'` passed: 9 tests, 32 assertions.
+- `php artisan test` passed: 30 tests, 200 assertions.
+
+Open risks:
+
+- Full Sanctum package/configuration, stateful domains, CORS credential handling, and browser-origin hardening remain open B4 work before F2/A1.
+- The Preferences endpoint still lives in `routes/api.php` closures with the rest of the V1 loop; controller/request/resource extraction remains a B4 maintainability task.
+- Supported locale normalization for regional variants such as `de-DE` is still expected on the frontend side unless the backend contract is expanded.
+
+Next:
+
+- Start the next B4 API slice: `POST /api/today/mode` persistence or the first read-only Learning Path/Node API, with focused validation and ownership tests.
