@@ -62,6 +62,7 @@ Status: **B4 hardening**
 3. Add review due and snooze APIs.
 4. Add path progress API.
 5. Expand validation and ownership matrices across the full canonical route set.
+6. Improve maintainability by extracting route closures into focused controllers, Form Requests, API Resources, and services in small endpoint-group commits.
 
 ## Active API Subset
 

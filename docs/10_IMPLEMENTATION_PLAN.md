@@ -831,7 +831,51 @@ Use these as the first small implementation sequence when the API and frontend a
 
 ## Phase 9: Documentation And Cleanup
 
-### Ticket 9.1: Align Docs With Implementation
+### Ticket 9.1: Improve Laravel API Maintainability
+
+Status: **B4 hardening**
+
+Goal:
+
+- Move the growing API route closures into maintainable Laravel structures without changing runtime behavior or public API contracts.
+
+Tracking:
+
+- GitHub issue: `torbenseer/nuvio-backend#6`
+
+Implementation notes:
+
+- Controllers orchestrate request handling, authentication or ownership checks, service calls, and responses.
+- Form Requests own payload validation and preserve Laravel's existing validation error shape.
+- API Resources own response shaping and no-answer-leak protection for task and review read APIs.
+- Services keep domain decisions: Today selection, task grading, review scheduling, mastery updates, and progress aggregation.
+- Refactor in small endpoint-group commits that leave the test suite green after each step:
+  1. User, preferences, Today, and Today mode.
+  2. Learning path start and enrollment behavior.
+  3. Task read, task attempt start, and task attempt submit.
+  4. Review read and review answer.
+  5. Progress summary.
+
+Acceptance criteria:
+
+- `routes/api.php` contains route declarations only, not endpoint orchestration or response assembly.
+- Existing response shapes, status codes, validation behavior, ownership behavior, and no-answer-leak guarantees remain unchanged.
+- Existing service tests and feature tests continue to pass after each endpoint-group extraction.
+- New abstractions are introduced only where they map to Laravel conventions or reduce repeated endpoint logic.
+
+Tests to add:
+
+- No behavior tests are required for the planning ticket itself.
+- During implementation, rely on existing feature tests as regression coverage and add focused tests only where extraction exposes an uncovered behavior.
+
+Out of scope:
+
+- New API routes or response fields.
+- Frontend runtime work.
+- Broad domain redesign.
+- Replacing the existing Eloquent model structure.
+
+### Ticket 9.2: Align Docs With Implementation
 
 Status: **V1 required** for V1 behavior; **B4 hardening** for full API completeness docs.
 
@@ -865,7 +909,7 @@ Out of scope:
 
 - Marketing copy.
 
-### Ticket 9.2: Final MVP Verification
+### Ticket 9.3: Final MVP Verification
 
 Status: **V1 required** for the first `MvpLearningLoopTest`; **B4 hardening** for the full Backend MVP verification pass.
 

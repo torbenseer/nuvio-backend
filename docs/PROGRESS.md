@@ -312,3 +312,31 @@ Open risks:
 Next:
 
 - Add the first small Energy Mode-aware Today selection rule, starting with red mode preferring actions of 15 minutes or less when possible.
+
+## 2026-06-18 - B4 Maintainability Planning
+
+Status: completed.
+
+Changed:
+
+- Added a B4 maintainability ticket to `docs/10_IMPLEMENTATION_PLAN.md` for extracting route closures into Laravel controllers, Form Requests, API Resources, and focused services.
+- Linked the plan to existing backend issue `torbenseer/nuvio-backend#6`.
+- Added the maintainability slice to `docs/00_START_HERE.md` as a B4 hardening task that can run in small endpoint-group commits.
+
+Commit:
+
+- Recorded in this documentation-only planning commit.
+
+Checks:
+
+- No PHPUnit run needed for documentation-only planning changes.
+- Diff reviewed before commit.
+
+Open risks:
+
+- The refactor is not implemented yet; current API endpoints still live in route closures until the planned endpoint-group extraction begins.
+- Each future extraction must preserve response shapes, validation behavior, ownership behavior, and no-answer-leak guarantees.
+
+Next:
+
+- Implement the first maintainability extraction slice for User, Preferences, Today, and Today Mode after the next behavior-critical B4 slice is chosen.
