@@ -402,3 +402,36 @@ Open risks:
 Next:
 
 - Continue backend issue `torbenseer/nuvio-backend#3` with the next small read-only slice: `GET /api/nodes` and `GET /api/nodes/{id}` before adding node task/prerequisite endpoints.
+
+## 2026-06-18 - B4 Learning Node Read APIs
+
+Status: completed.
+
+Changed:
+
+- Added `GET /api/nodes` for authenticated learners with the canonical `{ "data": [...] }` response shape.
+- Listed active LearningNodes only and included `id`, `slug`, `type`, and `title`.
+- Added optional `type=skill` filtering and validation that rejects unsupported node types such as `concept`.
+- Added optional `subject` filtering against active Subject slugs, matching the existing read-only path filter behavior.
+- Added `GET /api/nodes/{learningNode}` for active node detail with `id`, `slug`, `type`, `title`, `description`, and active Subject memberships.
+- Kept the issue `#3` slice narrow: no Node Task APIs, no prerequisite APIs, no seed breadth expansion, and no controller/resource extraction.
+- Added guardrail coverage that Node responses do not expose task answers, Progress, pressure, or gamification fields.
+
+Commit:
+
+- `7b38cd0 feat: add learning node read APIs`
+
+Checks:
+
+- `php artisan test --filter=LearningNodeApiTest` passed: 7 tests, 106 assertions.
+- `php artisan test` passed: 48 tests, 568 assertions.
+
+Open risks:
+
+- Backend issue `torbenseer/nuvio-backend#3` remains partially open for `GET /api/nodes/{id}/tasks` and `GET /api/nodes/{id}/prerequisites`.
+- Learning Node routes still live in `routes/api.php`; controller, FormRequest, and Resource extraction remains covered by backend issue `torbenseer/nuvio-backend#6`.
+- The optional Node `subject` filter now validates active Subject slugs; this matches the existing Learning Path read API but should stay documented if the API spec later wants explicit Node subject-filter validation text.
+
+Next:
+
+- Continue backend issue `torbenseer/nuvio-backend#3` with the next small read-only slice: `GET /api/nodes/{id}/tasks`, keeping answer schemas and hidden correctness metadata out of responses.
