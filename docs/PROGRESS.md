@@ -281,3 +281,34 @@ Open risks:
 Next:
 
 - Start the next B4 API slice: `POST /api/today/mode` persistence or the first read-only Learning Path/Node API, with focused validation and ownership tests.
+
+## 2026-06-18 - B4 Today Mode Endpoint
+
+Status: completed.
+
+Changed:
+
+- Added `users.energy_mode` with a `yellow` default for the authenticated learner's current Energy Mode.
+- Added `POST /api/today/mode` behind the existing `web` plus `auth` API route group.
+- Persisted allowed Energy Mode values: `red`, `yellow`, and `green`.
+- Returned the canonical response shape: `{ "data": { "mode": "yellow" } }`.
+- Added focused feature coverage for unauthenticated rejection, valid updates, required `mode`, invalid `mode`, and persistence preservation after invalid requests.
+
+Commit:
+
+- `64609de feat: add today mode endpoint`
+
+Checks:
+
+- `php artisan test --filter=TodayModeTest` passed: 3 tests, 11 assertions.
+- `php artisan test --filter='TodayModeTest|UserEndpointTest|TodaySelectorTest'` passed: 11 tests, 49 assertions.
+- `php artisan test` passed: 33 tests, 211 assertions.
+
+Open risks:
+
+- `GET /api/today` still does not rank or filter recommendations by stored Energy Mode. The endpoint persistence slice is complete, but the B4 Today selection behavior still needs a focused follow-up before the API fully satisfies the red/yellow/green selection acceptance criteria.
+- The Today mode endpoint still lives in `routes/api.php` closures with the rest of the V1/B4 learning routes; controller/request/resource extraction remains covered by the existing B4 maintainability issue.
+
+Next:
+
+- Add the first small Energy Mode-aware Today selection rule, starting with red mode preferring actions of 15 minutes or less when possible.
