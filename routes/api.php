@@ -15,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 Route::get('/status', function (): array {
@@ -81,6 +82,62 @@ Route::middleware(['web', 'auth'])->group(function (): void {
         return [
             'data' => [
                 'mode' => $validated['mode'],
+            ],
+        ];
+    });
+
+    Route::get('/learning-paths', function (Request $request): array {
+        $validated = $request->validate([
+            'subject' => [
+                'sometimes',
+                'string',
+                Rule::exists('subjects', 'slug')->where('active', true),
+            ],
+        ]);
+
+        $paths = LearningPath::query()
+            ->with(['subject', 'pathNodes.learningNode'])
+            ->where('active', true)
+            ->when($validated['subject'] ?? null, function ($query, string $subject): void {
+                $query->whereHas('subject', function ($query) use ($subject): void {
+                    $query->where('slug', $subject)->where('active', true);
+                });
+            })
+            ->orderBy('id')
+            ->get();
+
+        return [
+            'data' => $paths->map(fn (LearningPath $path): array => [
+                'id' => $path->id,
+                'slug' => $path->slug,
+                'title' => $path->title,
+                'subject' => $path->subject?->name,
+                'estimated_minutes' => $path->estimated_minutes,
+                'node_count' => $path->pathNodes
+                    ->filter(fn ($pathNode): bool => (bool) $pathNode->learningNode?->active)
+                    ->count(),
+            ])->all(),
+        ];
+    });
+
+    Route::get('/learning-paths/{learningPath}', function (LearningPath $learningPath): array {
+        abort_unless($learningPath->active, 404);
+
+        $learningPath->load(['pathNodes.learningNode']);
+
+        return [
+            'data' => [
+                'id' => $learningPath->id,
+                'title' => $learningPath->title,
+                'nodes' => $learningPath->pathNodes
+                    ->filter(fn ($pathNode): bool => (bool) $pathNode->learningNode?->active)
+                    ->map(fn ($pathNode): array => [
+                        'id' => $pathNode->learningNode->id,
+                        'title' => $pathNode->learningNode->title,
+                        'position' => $pathNode->position,
+                    ])
+                    ->values()
+                    ->all(),
             ],
         ];
     });
