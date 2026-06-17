@@ -13,6 +13,7 @@ Status: **Current**
 - `/up` health endpoint exists.
 - Boot/status, auth user, Today, task attempt, review, progress, review versioning, and guardrail tests exist.
 - Real V1 learning API routes exist for a pre-provisioned or authenticated learner.
+- B4 preference, Today mode, Learning Path, Learning Node, Node Task, and Node Prerequisite read routes exist with focused tests.
 - Web session login/logout routes exist with focused tests, but full Sanctum package/config/CORS hardening remains B4.
 - Frontend is planning-only until explicitly started against the real V1 subset.
 
@@ -57,11 +58,11 @@ Product guardrail for the completed V1 tickets:
 
 Status: **B4 hardening**
 
-1. Complete full Sanctum package/configuration, stateful domains, CORS credentials, and preference persistence.
-2. Add node listing/detail/task/prerequisite APIs.
-3. Add review due and snooze APIs.
-4. Add path progress API.
-5. Expand validation and ownership matrices across the full canonical route set.
+1. Complete full Sanctum package/configuration, stateful domains, CORS credentials, and browser-origin hardening.
+2. Add review due and snooze APIs.
+3. Add path progress API.
+4. Expand validation and ownership matrices across the full canonical route set.
+5. Add content validation and expand the small Algebra Foundations seed.
 6. Improve maintainability by extracting route closures into focused controllers, Form Requests, API Resources, and services in small endpoint-group commits.
 
 ## Active API Subset
@@ -71,11 +72,11 @@ Status: **B4 hardening**
 | `GET /api/status` | implemented |
 | `/up` | implemented |
 | `GET /api/user` | implemented |
-| `PUT /api/user/preferences` | B4 hardening |
+| `PUT /api/user/preferences` | implemented |
 | `GET /api/today` | implemented |
-| `POST /api/today/mode` | B4 hardening |
-| `GET /api/learning-paths` | B4 hardening |
-| `GET /api/learning-paths/{id}` | B4 hardening |
+| `POST /api/today/mode` | implemented |
+| `GET /api/learning-paths` | implemented |
+| `GET /api/learning-paths/{id}` | implemented |
 | `POST /api/learning-paths/{id}/start` | implemented |
 | `GET /api/tasks/{id}` | implemented |
 | `POST /api/task-attempts/start` | implemented |
@@ -84,10 +85,10 @@ Status: **B4 hardening**
 | `GET /api/reviews/{id}` | implemented |
 | `POST /api/reviews/{id}/answer` | implemented |
 | `GET /api/progress/summary` | implemented |
-| `GET /api/nodes` | B4 hardening |
-| `GET /api/nodes/{id}` | B4 hardening |
-| `GET /api/nodes/{id}/tasks` | B4 hardening |
-| `GET /api/nodes/{id}/prerequisites` | B4 hardening |
+| `GET /api/nodes` | implemented |
+| `GET /api/nodes/{id}` | implemented |
+| `GET /api/nodes/{id}/tasks` | implemented |
+| `GET /api/nodes/{id}/prerequisites` | implemented |
 | `GET /api/reviews/due` | B4 hardening |
 | `POST /api/reviews/{id}/snooze` | B4 hardening |
 | `GET /api/progress/paths/{learningPath}` | B4 hardening |

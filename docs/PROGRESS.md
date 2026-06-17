@@ -467,3 +467,36 @@ Open risks:
 Next:
 
 - Continue backend issue `torbenseer/nuvio-backend#3` with the final read-only slice: `GET /api/nodes/{id}/prerequisites`.
+
+## 2026-06-18 - B4 Learning Node Prerequisites API
+
+Status: completed.
+
+Changed:
+
+- Added a `node_relations` table and `NodeRelation` model for SkillGraph prerequisite relationships.
+- Added LearningNode prerequisite/dependent relationship helpers for MVP `prerequisite` relations.
+- Added `GET /api/nodes/{id}/prerequisites` for authenticated learners with the canonical `{ "data": [...] }` response shape.
+- Required the LearningNode to exist and be active; inactive or missing nodes return `404`.
+- Listed only active prerequisite LearningNodes and kept each item limited to `id`, `title`, and `relation`.
+- Added guardrail coverage that prerequisite responses do not expose answers, Progress, pressure, or gamification fields.
+- Completed the remaining route work for backend issue `torbenseer/nuvio-backend#3`.
+
+Commit:
+
+- `9225276 feat: add learning node prerequisites api`
+
+Checks:
+
+- `php artisan test --filter=LearningNodeApiTest` passed: 14 tests, 248 assertions.
+- `php artisan test` passed: 55 tests, 710 assertions.
+
+Open risks:
+
+- Learning Path and Node routes still live in `routes/api.php`; controller, FormRequest, and Resource extraction remains covered by backend issue `torbenseer/nuvio-backend#6`.
+- The V1 seed still has one LearningNode and no authored prerequisite relation. B4 content validation and seed breadth remain covered by backend issue `torbenseer/nuvio-backend#7`.
+- NodeRelation content rules such as no self-relations are not yet enforced by content validation; that remains part of the content validation issue.
+
+Next:
+
+- Close backend issue `torbenseer/nuvio-backend#3`, then choose the next B4 slice: due reviews/snooze (`#5`) or path progress (`#2`).
