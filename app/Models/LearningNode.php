@@ -30,6 +30,18 @@ class LearningNode extends Model
         return $this->hasMany(LearningPathNode::class);
     }
 
+    public function prerequisiteRelations(): HasMany
+    {
+        return $this->hasMany(NodeRelation::class, 'target_node_id')
+            ->where('type', 'prerequisite');
+    }
+
+    public function dependentRelations(): HasMany
+    {
+        return $this->hasMany(NodeRelation::class, 'source_node_id')
+            ->where('type', 'prerequisite');
+    }
+
     public function reviews(): HasMany
     {
         return $this->hasMany(Review::class);

@@ -4,6 +4,7 @@ use App\Models\Enrollment;
 use App\Models\LearningNode;
 use App\Models\LearningPath;
 use App\Models\MasteryState;
+use App\Models\NodeRelation;
 use App\Models\Review;
 use App\Models\Task;
 use App\Models\TaskAttempt;
@@ -212,6 +213,26 @@ Route::middleware(['web', 'auth'])->group(function (): void {
                 'type' => $task->type,
                 'difficulty' => $task->difficulty,
                 'estimated_minutes' => $task->estimated_minutes,
+            ])->all(),
+        ];
+    });
+
+    Route::get('/nodes/{learningNode}/prerequisites', function (LearningNode $learningNode): array {
+        abort_unless($learningNode->active, 404);
+
+        $relations = $learningNode->prerequisiteRelations()
+            ->with('sourceNode')
+            ->whereHas('sourceNode', function ($query): void {
+                $query->where('active', true);
+            })
+            ->orderBy('source_node_id')
+            ->get();
+
+        return [
+            'data' => $relations->map(fn (NodeRelation $relation): array => [
+                'id' => $relation->sourceNode->id,
+                'title' => $relation->sourceNode->title,
+                'relation' => 'prerequisite',
             ])->all(),
         ];
     });
