@@ -2,10 +2,18 @@
 
 use App\Models\Enrollment;
 use App\Models\LearningPath;
+use App\Models\MasteryState;
+use App\Models\Task;
+use App\Models\TaskAttempt;
+use App\Models\TaskVersion;
+use App\Services\Review\ReviewScheduler;
+use App\Services\Tasks\TaskGrader;
 use App\Services\Today\TodaySelector;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Validation\ValidationException;
 
 Route::get('/status', function (): array {
     return [
@@ -72,6 +80,138 @@ Route::middleware(['web', 'auth'])->group(function (): void {
                 'started_at' => $enrollment->started_at?->toJSON(),
             ],
         ];
+    });
+
+    Route::get('/tasks/{task}', function (Task $task): array {
+        abort_unless($task->active, 404);
+
+        $version = $task->activeVersion()->firstOrFail();
+
+        return [
+            'data' => [
+                'id' => $task->id,
+                'task_version_id' => $version->id,
+                'type' => $task->type,
+                'prompt' => $version->prompt,
+                'input' => $version->input_schema,
+                'estimated_minutes' => $task->estimated_minutes,
+            ],
+        ];
+    });
+
+    Route::post('/task-attempts/start', function (Request $request): array {
+        $validated = $request->validate([
+            'task_id' => ['required', 'integer', 'exists:tasks,id'],
+            'task_version_id' => ['required', 'integer', 'exists:task_versions,id'],
+        ]);
+
+        $task = Task::query()->where('active', true)->findOrFail($validated['task_id']);
+        $taskVersion = TaskVersion::query()
+            ->where('active', true)
+            ->where('task_id', $task->id)
+            ->findOrFail($validated['task_version_id']);
+
+        $attempt = TaskAttempt::query()->create([
+            'user_id' => $request->user()->id,
+            'task_id' => $task->id,
+            'task_version_id' => $taskVersion->id,
+            'status' => 'started',
+        ]);
+
+        return [
+            'data' => [
+                'id' => $attempt->id,
+                'task_id' => $attempt->task_id,
+                'task_version_id' => $attempt->task_version_id,
+                'status' => $attempt->status,
+            ],
+        ];
+    });
+
+    Route::post('/task-attempts/{taskAttempt}/submit', function (
+        Request $request,
+        TaskAttempt $taskAttempt,
+        TaskGrader $grader,
+        ReviewScheduler $reviews,
+    ): array {
+        abort_unless($taskAttempt->user_id === $request->user()->id, 403);
+
+        if ($taskAttempt->status !== 'started') {
+            abort(409, 'Attempt was already submitted.');
+        }
+
+        $hasAnswer = $request->has('answer');
+        $hasResult = $request->has('result');
+
+        if ($hasAnswer === $hasResult) {
+            throw ValidationException::withMessages([
+                'answer' => ['Provide exactly one of answer or result.'],
+            ]);
+        }
+
+        if ($hasResult) {
+            $validated = $request->validate([
+                'result' => ['required', 'in:unsure,skipped'],
+            ]);
+
+            $graded = [
+                'result' => $validated['result'],
+                'feedback_key' => $validated['result'] === 'unsure' ? 'marked_unsure_review' : 'skipped_review',
+                'feedback_text' => $validated['result'] === 'unsure'
+                    ? 'Nicht sicher? Passt. Nuvio plant eine kurze Wiederholung.'
+                    : 'Für jetzt übersprungen. Nuvio nimmt es später wieder auf.',
+            ];
+            $answer = null;
+        } else {
+            $validated = $request->validate([
+                'answer' => ['required', 'array'],
+                'answer.value' => ['required', 'numeric'],
+            ]);
+
+            $graded = $grader->grade($taskAttempt->taskVersion, $validated['answer']);
+            $answer = $validated['answer'];
+        }
+
+        [$review, $node, $mastery] = DB::transaction(function () use ($answer, $graded, $request, $reviews, $taskAttempt): array {
+            $review = $reviews->recordTaskOutcome($request->user(), $taskAttempt->task, $graded['result']);
+
+            $taskAttempt->forceFill([
+                'status' => 'submitted',
+                'result' => $graded['result'],
+                'answer' => $answer,
+                'feedback_key' => $graded['feedback_key'],
+                'feedback_text' => $graded['feedback_text'],
+                'submitted_at' => Carbon::now(),
+            ])->save();
+
+            $node = $taskAttempt->task->learningNodes()->wherePivot('is_primary', true)->firstOrFail();
+            $mastery = MasteryState::query()
+                ->where('user_id', $request->user()->id)
+                ->where('learning_node_id', $node->id)
+                ->firstOrFail();
+
+            return [$review, $node, $mastery];
+        });
+
+        $response = [
+            'id' => $taskAttempt->id,
+            'result' => $taskAttempt->result,
+            'feedback_key' => $taskAttempt->feedback_key,
+            'feedback_text' => $taskAttempt->feedback_text,
+            'mastery' => [
+                'learning_node_id' => $node->id,
+                'status' => $mastery->status,
+            ],
+            'review_created' => $review !== null,
+            'review_scheduled' => $review !== null,
+            'next_state' => $review !== null ? 'review_scheduled' : 'practiced',
+        ];
+
+        if ($review) {
+            $response['review_id'] = $review->id;
+        }
+
+        return ['data' => $response];
     });
 
 });
