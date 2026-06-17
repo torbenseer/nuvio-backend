@@ -44,6 +44,22 @@ Route::middleware(['web', 'auth'])->group(function (): void {
         ];
     });
 
+    Route::put('/user/preferences', function (Request $request): array {
+        $validated = $request->validate([
+            'locale' => ['required', 'string', 'in:de,en'],
+            'timezone' => ['required', 'string', 'timezone'],
+        ]);
+
+        $request->user()->forceFill($validated)->save();
+
+        return [
+            'data' => [
+                'locale' => $validated['locale'],
+                'timezone' => $validated['timezone'],
+            ],
+        ];
+    });
+
     Route::get('/today', function (Request $request, TodaySelector $selector): array {
         return [
             'data' => $selector->actionsFor($request->user()),
