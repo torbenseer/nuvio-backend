@@ -370,3 +370,35 @@ Open risks:
 Next:
 
 - Start the next B4 API slice: implement the read-only Learning Path/Node APIs from backend issue `torbenseer/nuvio-backend#3`, or take the focused controller/resource extraction slice for User, Preferences, Today, and Today Mode from backend issue `torbenseer/nuvio-backend#6`.
+
+## 2026-06-18 - B4 Learning Path Read APIs
+
+Status: completed.
+
+Changed:
+
+- Added `GET /api/learning-paths` for authenticated learners with the canonical `{ "data": [...] }` response shape.
+- Listed active LearningPaths only and included `id`, `slug`, `title`, `subject`, `estimated_minutes`, and active `node_count`.
+- Added optional `subject` filtering against active Subject slugs, with inactive or unknown subject filters returning `422`.
+- Added `GET /api/learning-paths/{learningPath}` for active path detail with ordered active LearningNodes.
+- Kept this first issue `#3` slice narrow: no Node APIs, no seed breadth expansion, and no controller/resource extraction.
+- Added guardrail coverage that Learning Path responses do not expose Progress, pressure, or gamification fields.
+
+Commit:
+
+- `28884e6 feat: add learning path read APIs`
+
+Checks:
+
+- `php artisan test --filter=LearningPathApiTest` passed: 5 tests, 65 assertions.
+- `php artisan test` passed: 41 tests, 462 assertions.
+
+Open risks:
+
+- Backend issue `torbenseer/nuvio-backend#3` remains partially open for `GET /api/nodes`, `GET /api/nodes/{id}`, `GET /api/nodes/{id}/tasks`, and `GET /api/nodes/{id}/prerequisites`.
+- Learning Path routes still live in `routes/api.php`; controller, FormRequest, and Resource extraction remains covered by backend issue `torbenseer/nuvio-backend#6`.
+- Active Path detail silently omits inactive nodes; B4 content validation should prevent active paths from containing inactive or inconsistent node references.
+
+Next:
+
+- Continue backend issue `torbenseer/nuvio-backend#3` with the next small read-only slice: `GET /api/nodes` and `GET /api/nodes/{id}` before adding node task/prerequisite endpoints.
