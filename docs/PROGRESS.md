@@ -435,3 +435,35 @@ Open risks:
 Next:
 
 - Continue backend issue `torbenseer/nuvio-backend#3` with the next small read-only slice: `GET /api/nodes/{id}/tasks`, keeping answer schemas and hidden correctness metadata out of responses.
+
+## 2026-06-18 - B4 Learning Node Task Read API
+
+Status: completed.
+
+Changed:
+
+- Added `GET /api/nodes/{id}/tasks` for authenticated learners with the canonical `{ "data": [...] }` response shape.
+- Required the LearningNode to exist and be active; inactive or missing nodes return `404`.
+- Listed only active Tasks linked to the active LearningNode.
+- Kept the Task response limited to `id`, `type`, `difficulty`, and `estimated_minutes`.
+- Kept the issue `#3` slice narrow: no prerequisite APIs, no seed breadth expansion, no frontend runtime, and no controller/FormRequest/Resource extraction.
+- Added guardrail coverage that Node Task responses do not expose answers, answer schemas, accepted values, tolerances, explanations, hidden correctness data, Progress, pressure, or gamification fields.
+
+Commit:
+
+- `0daae99 feat: add learning node task api`
+
+Checks:
+
+- `php artisan test --filter=LearningNodeApiTest` passed: 11 tests, 187 assertions.
+- `php artisan test` passed: 52 tests, 649 assertions.
+
+Open risks:
+
+- Backend issue `torbenseer/nuvio-backend#3` remains partially open for `GET /api/nodes/{id}/prerequisites`.
+- Learning Node routes still live in `routes/api.php`; controller, FormRequest, and Resource extraction remains covered by backend issue `torbenseer/nuvio-backend#6`.
+- Node Task ordering is currently by Task ID, which is sufficient for the current linked-task read API but may need an explicit content ordering field if B4 content breadth requires authored ordering.
+
+Next:
+
+- Continue backend issue `torbenseer/nuvio-backend#3` with the final read-only slice: `GET /api/nodes/{id}/prerequisites`.
