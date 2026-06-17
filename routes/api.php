@@ -198,6 +198,24 @@ Route::middleware(['web', 'auth'])->group(function (): void {
         ];
     });
 
+    Route::get('/nodes/{learningNode}/tasks', function (LearningNode $learningNode): array {
+        abort_unless($learningNode->active, 404);
+
+        $tasks = $learningNode->tasks()
+            ->where('tasks.active', true)
+            ->orderBy('tasks.id')
+            ->get();
+
+        return [
+            'data' => $tasks->map(fn (Task $task): array => [
+                'id' => $task->id,
+                'type' => $task->type,
+                'difficulty' => $task->difficulty,
+                'estimated_minutes' => $task->estimated_minutes,
+            ])->all(),
+        ];
+    });
+
     Route::post('/learning-paths/{learningPath}/start', function (Request $request, LearningPath $learningPath): array {
         abort_unless($learningPath->active, 404);
 
