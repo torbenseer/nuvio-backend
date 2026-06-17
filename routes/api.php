@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Enrollment;
+use App\Models\LearningNode;
 use App\Models\LearningPath;
 use App\Models\MasteryState;
 use App\Models\Review;
@@ -136,6 +137,61 @@ Route::middleware(['web', 'auth'])->group(function (): void {
                         'title' => $pathNode->learningNode->title,
                         'position' => $pathNode->position,
                     ])
+                    ->values()
+                    ->all(),
+            ],
+        ];
+    });
+
+    Route::get('/nodes', function (Request $request): array {
+        $validated = $request->validate([
+            'subject' => [
+                'sometimes',
+                'string',
+                Rule::exists('subjects', 'slug')->where('active', true),
+            ],
+            'type' => ['sometimes', 'string', 'in:skill'],
+        ]);
+
+        $nodes = LearningNode::query()
+            ->where('active', true)
+            ->when($validated['subject'] ?? null, function ($query, string $subject): void {
+                $query->whereHas('subjects', function ($query) use ($subject): void {
+                    $query->where('slug', $subject)->where('active', true);
+                });
+            })
+            ->when($validated['type'] ?? null, function ($query, string $type): void {
+                $query->where('type', $type);
+            })
+            ->orderBy('id')
+            ->get();
+
+        return [
+            'data' => $nodes->map(fn (LearningNode $node): array => [
+                'id' => $node->id,
+                'slug' => $node->slug,
+                'type' => $node->type,
+                'title' => $node->title,
+            ])->all(),
+        ];
+    });
+
+    Route::get('/nodes/{learningNode}', function (LearningNode $learningNode): array {
+        abort_unless($learningNode->active, 404);
+
+        $learningNode->load(['subjects' => function ($query): void {
+            $query->where('active', true)->orderBy('name');
+        }]);
+
+        return [
+            'data' => [
+                'id' => $learningNode->id,
+                'slug' => $learningNode->slug,
+                'type' => $learningNode->type,
+                'title' => $learningNode->title,
+                'description' => $learningNode->description,
+                'subjects' => $learningNode->subjects
+                    ->map(fn ($subject): string => $subject->name)
                     ->values()
                     ->all(),
             ],
