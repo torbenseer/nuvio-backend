@@ -31,6 +31,7 @@ class UserFactory extends Factory
             'password' => static::$password ??= Hash::make('password'),
             'locale' => 'de',
             'timezone' => 'Europe/Berlin',
+            'energy_mode' => 'yellow',
             'remember_token' => Str::random(10),
         ];
     }

@@ -69,6 +69,22 @@ Route::middleware(['web', 'auth'])->group(function (): void {
         ];
     });
 
+    Route::post('/today/mode', function (Request $request): array {
+        $validated = $request->validate([
+            'mode' => ['required', 'string', 'in:red,yellow,green'],
+        ]);
+
+        $request->user()->forceFill([
+            'energy_mode' => $validated['mode'],
+        ])->save();
+
+        return [
+            'data' => [
+                'mode' => $validated['mode'],
+            ],
+        ];
+    });
+
     Route::post('/learning-paths/{learningPath}/start', function (Request $request, LearningPath $learningPath): array {
         abort_unless($learningPath->active, 404);
 
