@@ -10,6 +10,8 @@ use App\Models\User;
 
 class TodaySelector
 {
+    private const RED_MODE_MAX_MINUTES = 15;
+
     /**
      * @return list<array<string, mixed>>
      */
@@ -32,8 +34,8 @@ class TodaySelector
             ];
         }
 
-        if (count($actions) >= 3) {
-            return $actions;
+        if ($user->energy_mode !== 'red' && count($actions) >= 3) {
+            return $this->limitedActions($actions, $user);
         }
 
         $enrollment = Enrollment::query()
@@ -60,10 +62,10 @@ class TodaySelector
                 ],
             ];
 
-            return array_slice($actions, 0, 3);
+            return $this->limitedActions($actions, $user);
         }
 
-        $task = $this->nextTask($enrollment);
+        $task = $this->nextTask($enrollment, $user);
 
         if ($task) {
             $actions[] = [
@@ -78,7 +80,7 @@ class TodaySelector
             ];
         }
 
-        return array_slice($actions, 0, 3);
+        return $this->limitedActions($actions, $user);
     }
 
     /**
@@ -92,17 +94,14 @@ class TodaySelector
             ->where('due_at', '<=', now())
             ->with(['learningNode', 'task'])
             ->orderBy('due_at')
-            ->limit(3)
             ->get();
     }
 
-    private function nextTask(Enrollment $enrollment): ?Task
+    private function nextTask(Enrollment $enrollment, User $user): ?Task
     {
         foreach ($enrollment->learningPath->pathNodes as $pathNode) {
-            $task = $pathNode->learningNode->tasks
-                ->where('active', true)
-                ->sortBy('difficulty')
-                ->first();
+            $tasks = $pathNode->learningNode->tasks->where('active', true);
+            $task = $this->bestTask($tasks, $user->energy_mode === 'red');
 
             if ($task) {
                 return $task;
@@ -110,6 +109,65 @@ class TodaySelector
         }
 
         return null;
+    }
+
+    private function bestTask(iterable $tasks, bool $preferShort): ?Task
+    {
+        $rankedTasks = collect($tasks)->sortBy(
+            fn (Task $task): string => sprintf(
+                '%010d-%010d-%010d',
+                $task->difficulty,
+                $task->estimated_minutes,
+                $task->id,
+            ),
+        );
+
+        if ($preferShort) {
+            $shortTask = $rankedTasks
+                ->filter(fn (Task $task): bool => $this->isShortAction($task->estimated_minutes))
+                ->first();
+
+            if ($shortTask) {
+                return $shortTask;
+            }
+        }
+
+        return $rankedTasks->first();
+    }
+
+    /**
+     * @param list<array<string, mixed>> $actions
+     * @return list<array<string, mixed>>
+     */
+    private function limitedActions(array $actions, User $user): array
+    {
+        if ($user->energy_mode === 'red') {
+            $shortActions = array_values(array_filter(
+                $actions,
+                fn (array $action): bool => $this->isShortAction($action['estimated_minutes'] ?? null),
+            ));
+
+            if ($shortActions !== []) {
+                $actions = $shortActions;
+            }
+        }
+
+        $limitedActions = array_slice($actions, 0, 3);
+
+        return array_values(array_map(
+            function (array $action, int $index): array {
+                $action['priority'] = $index + 1;
+
+                return $action;
+            },
+            $limitedActions,
+            array_keys($limitedActions),
+        ));
+    }
+
+    private function isShortAction(mixed $minutes): bool
+    {
+        return is_numeric($minutes) && (int) $minutes <= self::RED_MODE_MAX_MINUTES;
     }
 
     private function reviewTitle(Review $review): string
