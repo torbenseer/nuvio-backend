@@ -4,6 +4,8 @@ Nuvio MVP is a Laravel API backend. The test suite must prove the core loop work
 
 **Today -> Task -> Attempt -> Feedback -> Review -> Progress**
 
+Backend MVP release readiness is defined in `docs/14_RELEASE_ROADMAP.md`. Content validation tests are required for B2/B4 readiness.
+
 ## 1. Testing Goals
 
 The MVP tests should prove:
@@ -73,27 +75,33 @@ Flow:
 
 API tests should verify routes, status codes, response shape, authorization, and side effects.
 
-Required endpoint coverage:
+V1 required endpoint coverage:
 
 - `GET /api/today`
+- `POST /api/learning-paths/{id}/start`
+- `GET /api/tasks/{id}`
+- `POST /api/task-attempts/start`
+- `POST /api/task-attempts/{id}/submit`
+- `GET /api/reviews/{id}`
+- `POST /api/reviews/{id}/answer`
+- `GET /api/progress/summary`
+
+B4 endpoint coverage:
+
 - `POST /api/today/mode`
 - `GET /api/learning-paths`
 - `GET /api/learning-paths/{id}`
-- `POST /api/learning-paths/{id}/start`
-- `GET /api/enrollments/{id}/progress`
 - `GET /api/nodes`
 - `GET /api/nodes/{id}`
 - `GET /api/nodes/{id}/tasks`
 - `GET /api/nodes/{id}/prerequisites`
-- `GET /api/tasks/{id}`
-- `POST /api/task-attempts/start`
-- `POST /api/task-attempts/{id}/submit`
-- `POST /api/task-attempts/{id}/self-check`
 - `GET /api/reviews/due`
-- `POST /api/reviews/{id}/answer`
 - `POST /api/reviews/{id}/snooze`
-- `GET /api/progress/summary`
 - `GET /api/progress/paths/{id}`
+
+Later endpoint coverage:
+
+- `POST /api/task-attempts/{id}/self-check`
 
 Assertions:
 
@@ -141,11 +149,14 @@ Required tests:
 - Incorrect answer creates Review due in 1 day.
 - Unsure attempt creates Review due in 1 day.
 - Skipped attempt creates Review due in 1 day.
-- Correct normal answer does not create a Review in the narrow MVP.
+- Correct normal answer does not create a Review in the narrow MVP, and the test name documents this as a narrow MVP limitation.
+- B4 coverage must add retention-review scheduling for correct first-time answers.
 - Successful review marks Review completed.
 - Successful review moves MasteryState to `retained`.
 - Failed review resets interval to 1 day.
 - Duplicate weak attempts update existing Review instead of creating many duplicates.
+- Parallel weak attempts for the same user, LearningNode, and Task create or keep only one active scheduled Review.
+- Completed or suspended Reviews cannot be answered through the normal answer endpoint.
 
 Use Laravel time helpers:
 
@@ -160,21 +171,20 @@ TodaySelector must stay simple, capped, and explainable.
 Required tests:
 
 - `GET /api/today` returns no more than 3 actions.
-- Due reviews appear before review-due nodes and new tasks.
+- Due reviews appear before new tasks.
+- Due reviews appear before Start Path, and Start Path appears before a new Task when no enrollment exists.
 - Due reviews are ordered by oldest `due_at` first.
-- Review-due nodes appear before new path work.
-- Red mode returns tasks <= 15 minutes when such tasks exist.
-- Yellow mode can return normal 25 to 60 minute learning actions.
-- Missed reviews do not create an overwhelming backlog.
-- Hidden backlog count can be returned without listing every review.
 - User with no enrollment gets a start-path action.
+- Today does not expose `reason`, `mode`, `hidden_due_reviews`, backlog counts, or pressure state.
+- `GET /api/today?mode=red` is not part of V1 behavior.
+- Missed reviews do not create an overwhelming backlog.
 - User with completed path and due reviews gets review actions.
 
 Example:
 
 ```php
 $this->actingAs($user)
-    ->getJson('/api/today?mode=red')
+    ->getJson('/api/today')
     ->assertOk()
     ->assertJsonCount(3, 'data');
 ```
@@ -203,13 +213,18 @@ Required tests:
 - Submitting a correct numeric answer marks attempt as correct.
 - Numeric tolerance is respected.
 - Incorrect numeric answer marks attempt incorrect.
-- Multiple choice correct answer marks attempt correct.
-- Short text normalization works.
-- Self-check `unsure` result is stored.
-- Self-check `skipped` result is stored.
+- Multiple choice correct answer marks attempt correct in B4 tests only.
+- Self-check `unsure` result is stored in Later tests only.
+- Self-check `skipped` result is stored in Later tests only.
+- Auto-graded submit accepts `result: unsure` without an answer.
+- Auto-graded submit accepts `result: skipped` without an answer.
+- Auto-graded submit rejects requests containing both `answer` and `result`.
 - Submitted attempt cannot be submitted twice.
+- Duplicate submit consistently returns `409` or consistently returns the stored result idempotently; the implementation must choose one behavior and test it.
+- Submit is atomic or tests prove no partial TaskAttempt, Review, or MasteryState remains after injected scheduler/mastery failure.
 - Attempt belonging to another user cannot be submitted.
 - TaskAttempt is graded against stored TaskVersion even if a newer version exists.
+- Task read and review read responses do not expose correct answers, accepted values, grading tolerances, canonical solutions, or hidden correctness metadata.
 
 ## 10. Learning Path Tests
 
@@ -219,7 +234,6 @@ Required tests:
 - User can start a LearningPath.
 - Starting same path twice is idempotent.
 - Enrollment belongs to user.
-- Enrollment progress uses MasteryStates.
 - Path progress excludes another user's state.
 - Prerequisite NodeRelations can be queried.
 
@@ -242,26 +256,44 @@ Required tests:
 - SimulationRun belongs to user.
 - Completed simulation does not update MasteryState unless evaluator rule allows it.
 
-## 12. Later Gamification Tests
+## 12. Motivation Without Pressure Guardrail Tests
 
-Not part of the MVP. Add only after XP events or achievements are explicitly requested.
+Required for V1/B4 where responses, fixtures, or copy are added.
 
 Required tests:
 
-- Correct task can create XpEvent.
-- Completed review can create XpEvent.
-- XP event references source action.
-- Achievement is awarded once.
-- Gamification does not determine MasteryState.
-- Missed days do not create shame-based penalty events.
+- Today and Progress responses do not include XP, badge, achievement, streak, rank, reward level, catch-up, or lost-progress fields.
+- Today, Task, Review, Feedback, and Progress responses do not include XP, Badges, Achievements, Streaks, Streak Freezes, Leaderboards, Levels as rewards, Reward Inventory, Catch-up Goals, Backlog Debt, Missed-Day Counts, Lost Progress, Daily Pressure, Countdown Pressure, Artificial Scarcity, or Lootbox/Slot-Machine metadata.
+- Progress summary uses MasteryStates, Reviews, TaskAttempts, and LearningPath order.
+- Hidden backlog counts are not returned from V1 UI-facing responses; any later internal count must not render as learner-facing debt.
+- `reviews_due` is tested as neutral orientation, not as a debt, remainder, or missed-work count.
+- Unsure, Skip, and Snooze paths use neutral result states.
+- Missed days do not create loss, repair, or penalty events.
+- Copy fixtures avoid "catch up", "behind", "failed", "lost progress", and streak-protection language.
+- V1 responses do not include `completion_state`, `mastery_moment`, `challenge_options`, `mastery_score`, `returning_after_break`, `percent_complete`, `hidden_due_reviews`, `reason`, or `mode`.
+- B4 Completion States are returned only after real task or review actions.
+- B4 Mastery Moments are returned only after correct Review or retained transition.
+- Later Skill-Map responses show `unknown`, `practiced`, `review_due`, or `retained` only.
+- Later challenge options contain only deterministic learning choices and no reward choices.
+- No response fixture includes countdown pressure, artificial scarcity, lootbox-like reveal, comeback streak, or attendance reward.
 
-## 13. Later AI Teacher Guardrail Tests
+## 13. API Contract Drift Tests
+
+Required before frontend integration:
+
+- Backend API feature tests assert the exact V1 endpoint set from `05_API_SPEC.md`.
+- JSON response tests cover required fields and forbidden fields for Today, Task read, Task submit, Review read, Review answer, and Progress Summary.
+- A contract fixture or generated schema comparison checks that frontend MSW/Zod fixtures do not expect fields missing from the Laravel API.
+- Real backend smoke tests cover the V1 loop separately from frontend MSW contract tests.
+- MSW fixtures are treated as frontend contract tests only; they do not replace Laravel feature tests.
+- Any addition of Energy Mode, Reviews Due, Snooze, Skill-Map, Challenge Options, or Self-check must fail V1 contract tests unless the endpoint is explicitly moved out of B4/Later in the API spec.
+
+## 14. Later AI Teacher Guardrail Tests
 
 AI teacher is not MVP. Add these only after AI endpoints or scaffolding are explicitly requested.
 
 Required tests:
 
-- Unknown mode is rejected.
 - User cannot request hint for another user's TaskAttempt.
 - First hint does not reveal full solution.
 - Check-answer mode does not update TaskAttempt result.
@@ -270,7 +302,7 @@ Required tests:
 - Unsafe request is refused.
 - AI interaction is logged.
 
-## 14. Edge Cases
+## 15. Edge Cases
 
 Required edge-case coverage:
 
@@ -279,25 +311,31 @@ Required edge-case coverage:
 - Review points to archived task.
 - User has many overdue reviews.
 - User marks many tasks unsure in one session.
-- Red mode has no short actions available.
 - Content import references missing LearningNode.
-- Snoozed review does not improve mastery.
+- Snoozed review does not improve mastery when B4 implements Snooze.
+- Duplicate submit/race conditions do not create partial state.
+- Completed Review cannot be answered again.
+- Attempts and Reviews remain user-isolated.
+- Answer leak prevention remains covered for Task and Review reads.
 
-## 15. Regression Test Priorities
+## 16. Regression Test Priorities
 
 Highest priority regressions:
 
 1. Today returns more than 3 actions.
 2. Incorrect, unsure, or skipped attempt does not create Review.
-3. Correct normal attempts create Reviews in the narrow MVP.
+3. Correct normal attempts do not create Reviews in the narrow MVP.
 4. Review answer does not update MasteryState.
 5. TaskAttempt loses TaskVersion history.
 6. LearningNode loses multi-subject support.
 7. Task loses multi-node support.
 8. Content import accepts invalid task.
 9. Private user state leaks.
+10. API responses drift from the V1 frontend contract or expose forbidden pressure/reward fields.
+11. Task or Review read leaks the correct answer.
+12. Review Answer accepts a completed or suspended Review.
 
-## 16. Definition Of Done
+## 17. Definition Of Done
 
 The MVP test suite is done when:
 
@@ -308,7 +346,9 @@ The MVP test suite is done when:
 - Task grading has unit tests.
 - Task attempt API has feature tests.
 - ReviewScheduler has schedule and duplicate tests.
-- TodaySelector has cap, priority, red mode, and backlog tests.
+- Contract drift tests distinguish frontend MSW/Zod fixtures from real Laravel smoke tests.
+- Forbidden reward/pressure fields and forbidden copy are covered by regression tests.
+- TodaySelector has cap, priority, start-path, review-before-task, and forbidden-field tests.
 - MasteryState updates are tested from attempts and reviews.
 - LearningPath enrollment and progress are tested.
 - Later-feature tests are absent from the MVP suite unless those features are explicitly implemented.

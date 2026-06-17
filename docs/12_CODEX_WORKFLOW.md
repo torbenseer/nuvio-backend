@@ -2,46 +2,52 @@
 
 This document explains how Codex should work on Nuvio step by step.
 
-Nuvio is a Laravel API backend for a Duolingo-like adult learning platform. Codex should implement one phase or one ticket at a time, keep the MVP backend-only, and avoid silently adding out-of-scope features.
+Nuvio is a Laravel API backend for an adult learning platform. Codex should implement one phase or one ticket at a time, keep the MVP backend-only, and avoid silently adding out-of-scope features.
+
+In this document, implementation `Phase` headings refer to ticket groups in `docs/10_IMPLEMENTATION_PLAN.md`. Product phases and release gates are defined in `docs/14_RELEASE_ROADMAP.md`.
 
 Repository boundaries:
 
 - Work in `backend/` for the Laravel API MVP.
 - Treat `backend/` as its own Git repository.
-- Treat `frontend/` as a separate Git repository reserved for post-MVP frontend work.
-- Do not add frontend application code while completing backend MVP tickets.
+- Treat `frontend/` as a separate Git repository reserved for the first integrated frontend slice.
+- Do not add frontend application code until the V1 API subset exists in backend routes and tests.
+- Full B4 API hardening remains required before Private Alpha readiness.
 
 ## 1. How To Read The Docs
 
 Read the docs in this order:
 
-1. `docs/00_PRODUCT_VISION.md` for product intent.
-2. `docs/02_MVP_SCOPE.md` for strict boundaries.
-3. `docs/04_DOMAIN_MODEL.md` for entities and relationships.
-4. `docs/05_API_SPEC.md` for endpoint contracts.
-5. `docs/10_IMPLEMENTATION_PLAN.md` for the next ticket.
-6. `docs/11_TEST_PLAN.md` for required tests.
+1. `CONTEXT.md` for canonical domain language.
+2. `docs/00_PRODUCT_VISION.md` for product intent.
+3. `docs/02_MVP_SCOPE.md` for strict boundaries.
+4. `docs/04_DOMAIN_MODEL.md` for entities and relationships.
+5. `docs/05_API_SPEC.md` for canonical endpoint contracts.
+6. `docs/10_IMPLEMENTATION_PLAN.md` for the next ticket.
+7. `docs/11_TEST_PLAN.md` for required tests.
+8. `docs/14_RELEASE_ROADMAP.md` for release gates and release language.
 
-Use the docs as intent, but treat existing code as current reality. If docs and code disagree, prefer a small implementation that preserves working code and update docs only when behavior intentionally changes.
+Use the docs as intent, but treat existing code as current reality. If route names or response shapes disagree across docs, prefer `docs/05_API_SPEC.md` and align the other document. If docs and code disagree, prefer a small implementation that preserves working code and update docs only when behavior intentionally changes.
 
 ## 2. Implementation Order
 
 Follow `docs/10_IMPLEMENTATION_PLAN.md`.
 
-Phase order:
+Implementation ticket-group order:
 
 1. Project setup.
-2. Core domain models and migrations.
-3. Seed data and content structure.
-4. Learning paths and enrollments.
-5. Tasks and task versions.
-6. Task attempts and answer checking.
-7. Review engine.
-8. Today action selector.
-9. Progress and mastery states.
-10. Documentation and cleanup.
+2. Sanctum SPA auth and preferences.
+3. Core domain models and migrations.
+4. Seed data and content structure.
+5. Learning paths and enrollments.
+6. Tasks and task versions.
+7. Task attempts and answer checking.
+8. Review engine.
+9. Today action selector.
+10. Progress and mastery states.
+11. Documentation and cleanup.
 
-Later phases such as custom tasks, simulations, gamification, sessions, and AI teacher scaffolding are not part of the MVP order.
+Later phases such as custom tasks, simulations, gamification, LearningSessions, and AI teacher scaffolding are not part of the MVP order.
 
 Do not skip ahead to optional phases unless explicitly requested.
 
@@ -189,8 +195,12 @@ Endpoint rules:
 - `GET /api/today` returns max 3 actions.
 - Task read endpoints do not expose answer schemas.
 - Attempt submit endpoints return result and feedback.
-- Review endpoints summarize backlog instead of listing huge queues.
+- Review endpoints cap due work and do not expose hidden backlog counts in UI-facing responses.
 - Progress endpoints use MasteryState and Review data, not only time.
+- Progress and Today responses do not expose XP, badges, achievements, streaks, streak freezes, ranks, reward levels, catch-up debt, or lost-progress state.
+- V1 responses do not include `completion_state`, `mastery_moment`, `challenge_options`, `mastery_score`, `hidden_due_reviews`, or `returning_after_break`.
+- B4 playful response metadata may include `completion_state` and `mastery_moment` only when derived from learning evidence.
+- Skill-Map and Challenge Options are Later and need separate contracts.
 
 ## 11. Content Import Conventions
 
@@ -228,7 +238,9 @@ Do not:
 - Add AI provider integration unless explicitly requested.
 - Add custom task endpoints in the MVP.
 - Add simulation endpoints or tables in the MVP.
-- Add XP, achievement, badge, or streak tables in the MVP.
+- Add XP, achievement, badge, streak, streak freeze, leaderboard, or reward level tables in V1 or B4.
+- Add daily pressure, catch-up, behind, failed, or lost-progress mechanics.
+- Add comeback streaks, countdown pressure, artificial scarcity, lootbox-like reveals, or attendance rewards.
 - Add AiInteraction tables or AI endpoints in the MVP.
 - Build generic workflow engines for simple domain rules.
 
@@ -265,7 +277,7 @@ Before finishing a change:
 - No out-of-scope feature was added.
 - Review behavior remains tested.
 - Today selector still caps actions at three.
-- Red mode still respects max 15 minutes when possible.
+- V1 Today accepts no Energy Mode. B4 Red mode respects max 15 minutes when possible after `POST /api/today/mode` exists.
 - Authorization protects user-owned state.
 - Task attempts preserve TaskVersion history.
 
@@ -310,17 +322,18 @@ Correct review answers should complete the Review and move MasteryState to
 ```text
 Implement TodaySelector and GET /api/today.
 The endpoint must return at most three actions, prioritize due reviews, and
-respect red mode by choosing actions of max 15 minutes when possible. Add
+return `meta.limit` without accepting mode, reason, or hidden backlog fields. Add
 TodaySelectorTest and TodayApiTest.
 ```
 
 ### Adding Seed Content
 
 ```text
-Add MVP seed content for math, physics, electrical engineering and chemistry.
+Add MVP seed content for Math: Algebra Foundations.
 Use LearningNodes, NodeRelations, LearningPaths, Tasks and TaskVersions.
-Keep the content small and add tests that seeded paths contain ordered nodes
-and every active task has at least one LearningNode.
+Seed 3 to 5 nodes and 2 to 3 tasks per node. Keep the content small and add
+tests that the seeded path contains ordered nodes and every active task has at
+least one LearningNode.
 ```
 
 ### Implementing Task Attempts
@@ -329,8 +342,7 @@ and every active task has at least one LearningNode.
 Implement task attempt start and submit endpoints.
 POST /api/task-attempts/start should create a TaskAttempt tied to the active
 TaskVersion. POST /api/task-attempts/{id}/submit should grade numeric,
-multiple choice answers. POST /api/task-attempts/{id}/self-check should store
-self-check results. Incorrect, unsure, and skipped attempts should call
+answers in V1. Multiple choice is B4. Self-check is Later. Incorrect, unsure, and skipped attempts should call
 ReviewScheduler. Add API and service tests.
 ```
 

@@ -2,7 +2,7 @@
 
 ## 1. Product Overview
 
-Nuvio is a Duolingo-like learning platform for adults. It helps users learn technical and scientific subjects through small tasks, review loops, visible progress paths, and later simulations and a constrained AI teacher.
+Nuvio is a learning platform for adults. It helps users learn technical and scientific subjects through small tasks, review loops, visible competence progress, and later simulations and a constrained AI teacher.
 
 The MVP is a Laravel API backend only. No frontend implementation is part of the MVP documentation except where API behavior must support future UX flows.
 
@@ -19,7 +19,7 @@ Example: A developer reviewing algebra and physics before studying machine learn
 Needs:
 
 - Fast path selection.
-- Short sessions.
+- Short learning blocks.
 - Review-heavy practice.
 - Clear weak-skill indicators.
 
@@ -147,8 +147,8 @@ Progress should show competence, not only activity time.
 
 ### Authentication
 
-- Users can register, log in, log out, and fetch their current profile.
-- Laravel Sanctum is the preferred MVP authentication option.
+- Users can register through the backend API, authenticate through Laravel Sanctum SPA auth, log out, and fetch their current profile.
+- `GET /api/user` should include locale preferences needed by the first frontend slice.
 
 ### SkillGraph
 
@@ -162,8 +162,10 @@ Progress should show competence, not only activity time.
 ### Daily Recommendations
 
 - The API must return zero to three recommended actions.
-- Actions must include a type, title, reason, priority, estimated duration, and target.
+- V1 actions must include a type, concrete title, priority, estimated duration, and target.
+- V1 actions must not expose `reason`; explainability belongs in deterministic ordering and tests, not learner-facing pressure text.
 - Due reviews must be prioritized before new learning.
+- Review actions must be framed as ready to review or ready to refresh, not overdue work.
 
 ### Task Attempts
 
@@ -195,13 +197,101 @@ Although the MVP is API-only, backend responses must support an ADHD-friendly fr
 Requirements:
 
 - Return at most three daily actions.
-- Include concise reasons for recommendations.
+- Include concrete action titles and estimated minutes for recommendations.
 - Avoid API shapes that require the frontend to build overwhelming dashboards.
-- Support short task sessions.
+- Support short task-focused learning blocks.
 - Support an `unsure` attempt state.
 - Avoid shame-based streak mechanics.
 - Allow progress recovery after missed days.
 - Make next actions explicit.
+- Keep Review, Unsure, Skip, and Snooze available as normal learning and recovery paths.
+- Avoid API fields that require the frontend to present backlog size as pressure or loss.
+- Do not add reward counters, collection state, streak state, leaderboard rank, or achievement state to V1 or B4 responses.
+
+## 9.1 Motivation Without Pressure Requirements
+
+Nuvio should motivate through competence, structure, and recovery.
+
+Motivating competence feedback means:
+
+- Feedback describes the current learning evidence and the next useful step.
+- Progress states communicate what is unknown, practiced, due for review, or retained.
+- Correct work can improve MasteryState.
+- Incorrect, unsure, skipped, or review-lapse work can create or update Review without shame language.
+
+Controlling gamification means:
+
+- The learner is asked to maintain a visible series, rank, currency, collection, or reward ladder.
+- Missing a day, taking a break, or using recovery actions creates loss, debt, repair work, or social comparison.
+- Friendly copy does not make these mechanics acceptable; the controlling effect comes from the mechanic.
+
+Helpful structure means:
+
+- Today returns at most three actions.
+- Review appears before new learning.
+- Tasks are small enough to finish.
+- Completion states close the loop without demanding more work.
+
+Pressure mechanics means:
+
+- XP, badges, achievements, streaks, streak freezes, leaderboards, reward levels, daily pressure copy, repeated confetti, or backlog debt signals.
+- Copy such as "catch up", "behind", "failed", "lost progress", "save your streak", or "don't break your run".
+
+Implementation requirements:
+
+- API progress fields must be learning-evidence fields such as MasteryState counts, Review counts, and path progress derived from LearningNodes.
+- API responses must not include XP totals, badge collections, streak counts, streak freezes, leaderboard ranks, or achievement unlocks.
+- UI copy keys and backend display strings must be neutral enough to render after correct, incorrect, unsure, skipped, snoozed, and resumed-after-break states.
+- Any due review count must be presented as available learning work, not debt.
+
+## 9.2 Playful Without Pressure Requirements
+
+Nuvio may feel playful when play comes from learning interaction and visible competence.
+
+Allowed product behavior:
+
+- A Skill-Map can show Algebra Foundations as a compact graph of LearningNodes.
+- Map nodes show competence status only: `unknown`, `practiced`, `review_due`, or `retained`.
+- Review nodes may show "ready to review" or "reactivate".
+- Completion States can appear after real learning actions.
+- Mastery Moments can appear after a correct Review, a `review_due` to `retained` transition, a formerly unsure task later solved correctly, or a short return-after-break action.
+- Optional challenge choices can offer `similar_task`, `slightly_harder`, or `short_review` when supported by Today or task selection.
+
+Forbidden product behavior:
+
+- Skill-Map nodes must not show stars, level numbers, badge slots, reward slots, streak state, or collection completion.
+- No XP, badges, achievements, streaks, streak freezes, comeback streaks, leaderboards, ranks, daily pressure, loss logic, lootbox feeling, artificial scarcity, countdown pressure, or reward for attendance.
+- Completion States must not use "+50 XP", "Badge earned", "Streak saved", "Back in the race", "catch up", "behind", "failed", or "wrong again".
+
+Implementation requirements:
+
+- V1 keeps numeric tasks and may use short Completion States only.
+- B4 may add Completion States and Mastery Moments after real learning evidence. Skill-Map response fields and optional challenge choice metadata are Later and require separate API contracts.
+- Later interactive Algebra tasks may add equation-step transformation, term balancing, error marking, and graph manipulation without changing grading or review scheduling guarantees.
+- All playful UI must preserve Review-before-new-learning, max-three Today actions, deterministic grading, deterministic review scheduling, and no answer leaks.
+
+## 9.3 Motivation And Enjoyment Requirements
+
+Nuvio makes learning enjoyable by reducing resistance and making competence visible. Enjoyment means: the learner can start without planning, complete a small useful action, understand the result, and trust that Nuvio will manage the next review.
+
+Requirements:
+
+- Today must create a positive opening moment.
+- Today must not start with review guilt, backlog debt, missed-day counts, or catch-up framing.
+- Review actions must appear as "bereit zum Wiederholen", not as "überfällig".
+- Feedback must always create a good next state: continue, review scheduled, retained, or done for now.
+- Incorrect, Unsure, and Skip must communicate: "Nuvio kümmert sich darum", not "Ich habe versagt".
+- Progress Summary must provide orientation, not performance accounting.
+- Enjoyment metrics must measure low friction and willingness to return, not raw activity pressure.
+
+Acceptance criteria:
+
+- A learner can open Nuvio after 14 days away and sees no guilt, loss, catch-up, missed-day, or debt language.
+- Today still shows at most three actions.
+- No visible list of all missed or due reviews is shown.
+- Unsure and Skip are as reachable as Submit.
+- Feedback explains the fachlicher nächster Schritt.
+- Completion States appear only after real learning actions.
 
 ## 10. Learning Science Requirements
 
@@ -223,12 +313,14 @@ Implementation requirements:
 
 ## 11. Content Requirements
 
-Initial subjects:
+Post-MVP subject expansion targets:
 
 - Math.
 - Physics.
 - Electrical engineering.
 - Chemistry.
+
+MVP seed content is narrower: one German Math path, Algebra Foundations. Additional subjects are content expansion after the backend MVP and first usable learning loop are stable.
 
 Initial examples:
 
@@ -277,6 +369,8 @@ Acceptance requirements:
 - Incorrect, unsure, or skipped attempts do not improve mastery.
 - Repeated failures can move a retained skill back to review_due.
 - Path progress is derived from skill progress.
+- Progress must not include XP, badge, streak, rank, or level reward fields.
+- `review_due` means normal scheduled learning work, not failure or lost progress.
 
 ## 13. Review Requirements
 
@@ -361,6 +455,7 @@ AI context should be constrained by:
 - Advanced simulation execution.
 - Simulation endpoints or SimulationRun tables.
 - XP, achievements, badges, or streak mechanics.
+- Streak freezes, leaderboards, reward levels, daily pressure mechanics, or gamified catch-up flows.
 - Team, classroom, or organization management.
 - Certificates.
 - Marketplace or shared user-generated content.
@@ -374,6 +469,7 @@ AI context should be constrained by:
 - Review scheduling could become inconsistent without tests.
 - Content authoring could become slow without validation.
 - Progress metrics could accidentally reward time spent instead of learning.
+- Motivation features could accidentally introduce pressure through loss, rank, collection, or daily obligation mechanics.
 
 ### Assumptions
 
@@ -387,7 +483,7 @@ AI context should be constrained by:
 
 The PRD is satisfied when the MVP backend can support these behaviors:
 
-- A user can register and authenticate.
+- A user can register through the backend API and authenticate through the Sanctum SPA flow.
 - A user can list subjects and learning paths.
 - A user can enroll in a path.
 - The system can represent SkillGraph with subjects, skills, prerequisites, paths, and tasks.
@@ -398,5 +494,8 @@ The PRD is satisfied when the MVP backend can support these behaviors:
 - Incorrect, unsure, and skipped attempts create or update reviews.
 - Correct attempts update skill progress.
 - Progress can be queried by path and skill.
+- Progress responses expose competence and review status without XP, badges, streaks, leaderboards, reward levels, or loss-state fields.
+- Unsure, Skip, and Snooze paths remain valid recovery behavior and do not produce shame or loss copy.
+- V1 acceptance includes no controlling gamification fields or UI requirements; B4 acceptance preserves the same boundary while hardening the wider API.
 - Initial seed content exists for one subject path with enough nodes and tasks to exercise the full loop.
 - The model can later support biology, computer science, career paths, project paths, simulations, and user-created tasks without changing the core learning model.

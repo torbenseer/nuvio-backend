@@ -1,8 +1,8 @@
-# Nuvio Simulation And Gamification Specification
+# Nuvio Simulation And Motivation Specification
 
 Simulations and gamification should support learning without distracting from it in later phases. They are not part of the narrow MVP.
 
-Do not implement simulation tables, simulation endpoints, XP events, achievements, badges, streaks, or gamification services until the core MVP learning loop is complete and the feature is explicitly requested.
+Do not implement simulation tables, simulation endpoints, XP events, achievements, badges, streaks, or gamification services. Nuvio may add simulations later, but the motivation model remains competence feedback, clear structure, and recovery without pressure.
 
 ## Part A: Simulations
 
@@ -57,7 +57,7 @@ Suggested fields:
 - `id`
 - `user_id`
 - `simulation_definition_id`
-- `session_id` nullable
+- `learning_session_id` nullable
 - `task_id` nullable
 - `status`
 - `parameters` JSON
@@ -145,7 +145,7 @@ Rules:
 
 - Evaluators must be deterministic.
 - Evaluators should return a structured goal result.
-- Evaluators may create XpEvents or update MasteryStates only through explicit rules.
+- Evaluators may update MasteryStates only through explicit rules.
 - The MVP omits evaluators.
 
 ### 8. Linking Simulations To LearningNodes And Tasks
@@ -190,8 +190,7 @@ Flow:
 2. API validates output schema.
 3. Backend evaluator checks goal if configured.
 4. API completes SimulationRun.
-5. API optionally creates XpEvent.
-6. API optionally updates MasteryState by explicit rule.
+5. API optionally updates MasteryState by explicit rule.
 
 Endpoint:
 
@@ -329,232 +328,370 @@ Linked LearningNodes:
 - Simulation progress updates mastery only through explicit backend rules.
 - The MVP ships without simulation tables, endpoints, or a simulation engine.
 
-## Part B: Gamification
+## Part B: Motivation Without Pressure
 
-### 1. Purpose Of Gamification
+Nuvio does not use gamification as a reward system. The product should make learning feel possible and worth continuing, but it must not turn learning into compliance, loss avoidance, or daily obligation.
 
-Gamification should make progress visible and motivate useful practice.
+### 1. Didactic Position
 
-It should:
+Adults need competence feedback, clear structure, and recovery after interruption.
 
-- Reinforce learning consistency.
-- Celebrate retained knowledge.
-- Make path progress feel clear.
-- Encourage reviews without shame.
-- Stay secondary to learning.
+Nuvio therefore avoids XP, badges, achievements, streaks, streak freezes, comeback streaks, leaderboards, ranks, and reward levels. These mechanics are not fixed by softer copy. A friendly streak still asks the learner to protect a series. A badge still turns learning evidence into collection status. XP still shifts attention from "what can I do now?" to "how many points did I earn?".
 
-### 2. ADHD-Friendly Gamification Principles
+For adults with ADHD, the product should reduce planning load and friction. It should not add a second task of maintaining the product's reward system. Breaks, variable energy, uncertainty, and restarts are expected parts of adult learning.
 
-- Show simple progress.
-- Avoid overwhelming reward systems.
-- Avoid shame-based streak penalties.
-- Do not punish missed days.
-- Prefer short feedback loops.
-- Reward meaningful practice, review, and transfer.
-- Keep badges adult-friendly.
+### 2. Distinctions
 
-### 3. Event-Based Gamification
+Motivating competence feedback:
 
-Gamification should be event-based.
+- Describes current evidence: correct, incorrect, unsure, skipped, retained, review due.
+- Explains the next useful action.
+- Updates MasteryState and Review records deterministically.
+- Helps the learner trust that work is captured and will return when useful.
 
-Events can be derived from:
+Controlling gamification:
 
-- TaskAttempt completed.
-- Review completed.
-- LearningNode retained.
-- LearningPath milestone reached.
-- Simulation goal completed.
+- Adds an external reward or loss layer: XP, points, coins, badges, streaks, ranks, leagues, collections, or reward levels.
+- Creates pressure to maintain, repair, protect, catch up, or compare.
+- Can be controlling even with supportive copy because the mechanic itself creates obligation.
 
-Rules:
+Helpful structure:
 
-- Store XP as XpEvent records.
-- Store durable badges as Achievement records.
-- Do not store gamification state as hidden logic inside TaskAttempt.
+- Caps Today at three actions.
+- Prioritizes Review before new learning.
+- Keeps tasks small and completable.
+- Shows compact progress status.
+- Lets learners choose Unsure and Skip without moral framing. B4 adds Snooze with the same boundary.
 
-### 4. XP Events
+Playful learning interaction:
 
-Purpose:
+- Lets learners manipulate the learning object itself, such as transforming an equation or balancing terms.
+- Shows competence state changes after real evidence.
+- Uses calm motion to orient the learner to state, location, or next step.
+- Does not create an external reward economy.
 
-- Record small point events for completed learning actions.
+Pressure mechanics:
 
-Suggested fields:
+- Present missed work as debt.
+- Present review due counts as failure.
+- Turn daily activity into a requirement.
+- Use loss, rank, scarcity, or collection completion as motivation.
 
-- `id`
-- `user_id`
-- `source_type`
-- `source_id`
-- `points`
-- `reason`
-- `created_at`
+### 3. Allowed Progress Patterns
 
-Rules:
+Allowed backend fields and UI states:
 
-- XP does not determine mastery.
-- XP should not drive Today selection.
-- XP should be explainable from source events.
-
-### 5. Achievements
-
-Purpose:
-
-- Record durable badges or milestones.
-
-Suggested fields:
-
-- `id`
-- `user_id`
-- `key`
-- `title`
-- `description`
-- `awarded_at`
-- `metadata` JSON
+- MasteryState statuses: `unknown`, `practiced`, `review_due`, `retained`.
+- Compact counts: active paths, practiced nodes, review-due nodes, retained nodes, due reviews.
+- Path progress derived from ordered LearningNodes and MasteryStates.
+- Neutral completion states when there is no useful work now.
+- Due review summary that stays capped or compact.
+- Copy such as "Nuvio will bring this back later."
+- Review scheduling that is deterministic and visible through normal Today behavior.
+- B4 snooze scheduling that is deterministic and visible through normal Today behavior.
+- Later compact Skill-Map node states for Algebra Foundations.
+- B4 Completion States after real learning actions.
+- B4 Mastery Moments after Review or MasteryState evidence.
+- Later optional challenge choices that select more learning work without implying obligation.
 
 Rules:
 
-- Achievements should be based on learning evidence.
-- Avoid achievements that shame missed days.
-- Avoid achievements that reward empty time spent.
+- Progress describes competence or scheduled learning work.
+- Progress must not imply that a break caused damage.
+- Review due means "ready to review", not "behind".
+- Snooze changes timing only; it is not progress and not a streak freeze.
+- "Next step available" means content is ready; it must not be phrased as "level unlocked".
 
-### 6. Milestones
+### 4. Playful Without Pressure
 
-Milestones are meaningful progress markers.
+Nuvio may feel playful through the learning surface itself.
 
-Examples:
+Allowed playful patterns:
 
-- First review completed.
-- First LearningNode retained.
-- First path section completed.
-- First cross-disciplinary transfer task completed.
-- First simulation goal completed.
+- Skill-Map instead of a dashboard.
+- Quiet progress states: `unknown`, `practiced`, `review_due`, `retained`.
+- Visual state changes after an actual TaskAttempt, Review answer, or MasteryState transition.
+- "Next step available" instead of "level unlocked".
+- Short Completion States.
+- Mastery Moments after real retrieval or retention evidence.
+- Interactive Algebra tasks that make the concept manipulable.
+- Optional challenge choices after completion.
+- Gentle animation for orientation and state change only.
+- Recovery after pauses as a calm re-entry.
 
-Milestones may create Achievement and XpEvent records.
+Forbidden playful patterns:
 
-### 7. Progress Bars
+- XP, badges, achievements, streaks, streak freezes, comeback streaks, leaderboards, ranks, daily pressure, loss logic, lootbox or slot-machine feeling, artificial scarcity, countdown pressure, or rewards for attendance.
+- Confetti after every task.
+- Skill-Map stars, level numbers, badge slots, collectible slots, or locked reward nodes.
 
-Progress bars should show:
+### 5. Skill-Map Rules
 
-- LearningPath completion.
-- LearningNode mastery state.
-- Review queue summary.
+The Skill-Map is a secondary or compact view over SkillGraph. Today remains the main surface.
+
+Allowed:
+
+- Show Algebra Foundations as LearningNode markers connected by prerequisite/path order.
+- Show node competence state: `unknown`, `practiced`, `review_due`, `retained`.
+- Show a node as ready to review.
+- Show a node as retained.
+- Show next available learning work.
+- Let the learner inspect a small node summary and return to Today.
+
+Forbidden:
+
+- Stars.
+- Level numbers.
+- Badge slots.
+- Achievement slots.
+- Reward locks.
+- Leaderboard or rank overlays.
+- Large dashboard analytics.
+- Full backlog list.
+
+API fields allowed for B4/Later Skill-Map:
+
+```json
+{
+  "learning_node_id": 101,
+  "title": "Lineare Gleichungen",
+  "status": "review_due",
+  "is_next_available": true,
+  "is_review_ready": true,
+  "position": 1,
+  "prerequisite_ids": []
+}
+```
+
+API fields forbidden:
+
+- `stars`
+- `level`
+- `xp`
+- `badge_slot`
+- `achievement`
+- `streak`
+- `rank`
+- `locked_reward`
+- `catch_up_required`
+
+### 6. Completion States
+
+Completion States are short closures after real learning actions. They are not rewards.
+
+Allowed examples:
+
+- "Schritt abgeschlossen"
+- "Lineare Gleichungen: geuebt"
+- "Review geplant"
+- "Nach der Pause wieder abgerufen"
+- "Behalten"
+- "Naechster Schritt verfuegbar"
+
+Forbidden examples:
+
+- "+50 XP"
+- "Badge verdient"
+- "Serie gerettet"
+- "Du bist wieder im Rennen"
+- "Level freigeschaltet"
+- "Catch up abgeschlossen"
 
 Rules:
 
-- Progress bars should use MasteryStates, not only time.
-- Do not show a huge review backlog as a threatening bar.
-- Keep summaries compact.
+- Completion States may be returned by task or review mutation responses as neutral `completion_state` metadata.
+- Completion States must be derived from attempt result, Review creation, Review completion, or MasteryState transition.
+- Completion States must not be created for app open, attendance, or passive time spent.
 
-### 8. Level Map
+### 7. Mastery Moments
 
-The level map is the future Duolingo-like path visualization.
+Mastery Moments make competence visible when the learner has produced meaningful evidence.
 
-Backend support:
+Allowed triggers:
 
-- LearningPath ordered LearningNodes.
-- MasteryState per node.
-- Review status per node.
-- Optional achievements per path section.
+- A Review is answered correctly.
+- A LearningNode changes from `review_due` to `retained`.
+- A formerly unsure task is later solved correctly.
+- A return-after-break action is completed with a short Review-first flow.
+
+Allowed UI behavior:
+
+- Calm state change on the node or feedback panel.
+- Short copy naming the competence state.
+- Optional route back to Today or a challenge choice.
+
+Allowed copy:
+
+- "Behalten"
+- "Das sass wieder."
+- "Lineare Gleichungen: wieder aktiv"
+- "Review abgeschlossen"
+- "Nach der Pause wieder abgerufen"
+
+Forbidden UI behavior:
+
+- Confetti after every task.
+- Reward inventory.
+- Countdown or urgency.
+- Streak repair.
+- Lootbox-like reveal.
+
+### 8. Interactive Algebra
+
+V1 must not grow into a large interaction engine.
+
+V1 required:
+
+- Numeric task remains the first supported algebra interaction.
+- Submit, Unsure, and Skip remain first-class paths.
+- Feedback may include a short Completion State.
+
+B4 hardening or Later:
+
+- Error marking: learner marks the step or term where the error occurs.
+- Similar task choice after completion when deterministic task selection supports it.
+
+Later:
+
+- Equation-step transformation: learner applies one operation to both sides.
+- Term balancing: learner manipulates terms while preserving equality.
+- Graph manipulation: learner adjusts slope/intercept or points and submits structured state.
+- Slightly harder challenge choice when deterministic task selection supports difficulty.
 
 Rules:
 
-- The map is a view over SkillGraph.
-- Do not create a separate progression model for the map.
+- Interactive tasks must still use deterministic grading.
+- Read APIs must not leak answers.
+- Review scheduling remains deterministic.
+- Interactive tasks create TaskAttempts and Reviews through the same loop.
+- No interactive task may reward mere attendance or clicking.
 
-### 9. What Not To Gamify
+### 9. Recovery After Pauses
 
-Do not reward:
-
-- Time spent without practice.
-- Clicking through content.
-- Avoiding difficult tasks.
-- Maintaining perfect streaks at the cost of learning.
-- Repeating trivial tasks for inflated points.
-
-Do not penalize:
-
-- Missed days.
-- Wrong answers.
-- Unsure answers.
-- Returning after a break.
-
-### 10. No Shame-Based Streak Penalties
-
-Streaks, if implemented, must be gentle.
+Return after a pause should be calm and short.
 
 Rules:
 
-- No punitive streak loss messaging.
-- No "you failed" language.
-- No locking progress after missed days.
-- Missed days can simply mean no activity event was recorded.
+- Do not count missed days.
+- Do not show a backlog list.
+- Do not create catch-up goals.
+- Today still shows at most three actions.
+- Prioritize a short Review-first action when useful.
+- Use copy such as "Nuvio will bring the rest back gradually."
+- Due work remains scheduled learning work, not debt.
 
-Preferred framing:
+Allowed API behavior:
 
+- Today may return up to three actions.
+- B4 may add Completion States and Mastery Moments after real learning evidence.
+
+Forbidden API behavior:
+
+- `missed_days`
+- `catch_up_required`
+- `overdue_debt`
+- `streak_repair`
+- `lost_progress`
+- `hidden_due_reviews`
+- `returning_after_break`
+
+### 10. Forbidden Patterns
+
+Do not implement:
+
+- XP, points, coins, reward currency, or `xp_events`.
+- Badges, achievements, trophies, collections, or `achievements`.
+- Streaks, streak freezes, streak repairs, or missed-day recovery purchases.
+- Leaderboards, ranks, leagues, competitive tiers, or social comparison.
+- Level ladders used as a reward path.
+- Daily pressure copy.
+- "Catch up", "behind", "failed", "lost progress", "save your streak", or equivalent wording.
+- Confetti, repeated celebration animations, or reward loops after every task.
+- Backlog numbers displayed as debt, warning, or urgency.
+- Lootbox-like reveals, slot-machine timing, artificial scarcity, countdown pressure, or rewards for attendance.
+
+### 11. Copy Rules
+
+Good copy:
+
+- "Not sure yet"
+- "Skip for now"
+- "Snooze review" in B4 only
+- "This is ready to review"
+- "Nuvio will bring this back later"
+- "Review this before the next new task"
+- "No useful work right now"
 - "Welcome back. Here are three useful actions."
-- "Let's review this before moving on."
+- "Schritt abgeschlossen"
+- "Lineare Gleichungen: geuebt"
+- "Review geplant"
+- "Nach der Pause wieder abgerufen"
+- "Behalten"
+- "Naechster Schritt verfuegbar"
+- "Nuvio will bring the rest back gradually."
 
-### 11. Example Events
+Bad copy:
 
-XP examples:
+- "You failed"
+- "Wrong again"
+- "You are behind"
+- "Catch up now"
+- "You lost progress"
+- "Save your streak"
+- "Keep your perfect run"
+- "Only 6 reviews left"
+- "Complete today's goal to avoid falling behind"
+- "+50 XP"
+- "Badge earned"
+- "Level unlocked"
+- "Back in the race"
 
-```json
-[
-  {
-    "source_type": "task_attempt",
-    "source_id": 4000,
-    "points": 10,
-    "reason": "correct_task"
-  },
-  {
-    "source_type": "review",
-    "source_id": 501,
-    "points": 8,
-    "reason": "completed_review"
-  },
-  {
-    "source_type": "simulation_run",
-    "source_id": 600,
-    "points": 12,
-    "reason": "simulation_goal_completed"
-  }
-]
-```
+### 12. API And Data Rules
 
-### 12. Example Achievement Definitions
-
-```json
-[
-  {
-    "key": "first-review",
-    "title": "First Review",
-    "description": "Completed your first review."
-  },
-  {
-    "key": "node-retained",
-    "title": "Retained Skill",
-    "description": "Retained a LearningNode through review."
-  },
-  {
-    "key": "cross-disciplinary-transfer",
-    "title": "Transfer Ready",
-    "description": "Applied knowledge across two subjects."
-  },
-  {
-    "key": "simulation-goal",
-    "title": "Experiment Complete",
-    "description": "Completed a simulation goal."
-  }
-]
-```
+- Do not add `xp_events`, `achievements`, `streaks`, `streak_freezes`, `leaderboard_entries`, or equivalent tables for V1 or B4.
+- Do not add response fields named `xp`, `points`, `coins`, `badges`, `achievements`, `streak`, `streak_freeze`, `comeback_streak`, `rank`, `league`, `level_reward`, `catch_up_count`, `missed_days_penalty`, `overdue_debt`, `countdown`, `scarcity`, or `lost_progress`.
+- If a future content map uses levels as content structure, the API must name them as LearningNodes, path positions, sections, or prerequisites, not reward levels.
+- Today must not include `hidden_due_reviews` in V1/B4 UI-facing responses.
+- Progress APIs must derive state from MasteryStates, TaskAttempts, Reviews, and LearningPath order.
+- Allowed V1 fields: `status` and mastery status transitions exposed without scores.
+- Allowed B4 playful fields: `completion_state` and `mastery_moment`.
+- Later playful fields: `is_next_available`, `is_review_ready`, and `challenge_options`.
+- `challenge_options` are Later and require a separate deterministic API contract.
 
 ### 13. Acceptance Criteria
 
-- Gamification is event-based.
-- XP events can be traced to source learning actions.
-- Achievements reward meaningful learning evidence.
-- Progress bars use MasteryStates and path progress.
-- The level map is a view over SkillGraph.
-- Gamification does not determine mastery.
-- Gamification does not distract from reviews or tasks.
-- No shame-based streak penalties exist.
-- Missed days do not punish the learner.
-- None of these gamification mechanics are implemented in the narrow MVP.
+V1 acceptance:
+
+- Today returns at most three actions.
+- Review is prioritized before new learning.
+- Progress summary uses competence and review status only.
+- Feedback handles correct, incorrect, unsure, skipped, and review-created states without pressure copy.
+- Unsure and Skip are first-class actions.
+- No V1 endpoint exposes XP, badges, achievements, streaks, ranks, reward levels, or loss-state fields.
+- Numeric task remains the V1 algebra interaction.
+- Completion States are not exposed in V1.
+
+B4 acceptance:
+
+- Completion States are short, neutral, and based on real learning actions.
+- `GET /api/reviews/due` and `POST /api/reviews/{id}/snooze` preserve the same pressure boundary.
+- Snooze does not improve mastery, protect a streak, or create an achievement.
+- Path progress remains derived from LearningNodes and MasteryStates.
+- Hidden backlog data is capped, summarized, or omitted, and never required for pressure UI.
+- Tests or fixtures cover forbidden fields and copy where practical.
+- Compact Skill-Map fields, if added, show competence state only.
+- Error marking or challenge choice metadata, if added, uses deterministic selection and does not bypass Review.
+
+Later acceptance:
+
+- Interactive Algebra tasks use TaskAttempts, deterministic grading, deterministic review scheduling, and no answer leaks.
+- Skill-Map remains secondary to Today.
+- Animations orient state changes only and do not become reward loops.
+
+### 14. Small Implementable Tickets
+
+1. Add B4 neutral `completion_state` values to task/review response examples and tests.
+2. Add B4 copy fixtures for Completion States and Mastery Moments. Return-after-break copy must not imply missed days or debt.
+3. Add forbidden-field assertions for XP, badges, streaks, ranks, reward levels, catch-up debt, countdowns, and lost progress.
+4. Specify compact Skill-Map B4 response shape from LearningPath, LearningNodes, and MasteryStates.
+5. Define Later interactive Algebra task schemas for equation transformation, error marking, term balancing, and graph manipulation.

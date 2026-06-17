@@ -1,6 +1,6 @@
 # Nuvio Domain Model
 
-Nuvio is a Laravel API backend for a Duolingo-like adult learning platform. Its core MVP domain is SkillGraph: a learning graph where subjects, learning paths, tasks, attempts, reviews, and mastery states are connected through reusable learning nodes.
+Nuvio is a Laravel API backend for an adult learning platform. Its core MVP domain is SkillGraph: a learning graph where subjects, learning paths, tasks, attempts, reviews, and mastery states are connected through reusable learning nodes.
 
 Career paths, projects, simulations, gamification, custom tasks, and AI are later phases. They must not add MVP tables, endpoints, or migrations unless explicitly requested.
 
@@ -50,7 +50,7 @@ Notes:
 
 - Use Laravel's default User model as the base.
 - Keep learning state in separate tables.
-- Later phases may add Sessions, SimulationRuns, Achievements, XpEvents, AiInteractions, and owned Tasks.
+- Later phases may add LearningSessions, SimulationRuns, AiInteractions, and owned Tasks.
 
 ### Subject
 
@@ -153,21 +153,14 @@ Relationships:
 - Belongs to source LearningNode.
 - Belongs to target LearningNode.
 
-Supported relation types:
+MVP relation types:
 
 - `prerequisite`
-- `supports`
-- `similar`
-- `application`
-- `transfer`
 
 Notes:
 
 - `prerequisite` means the source node should usually be learned before the target node.
-- `supports` means the source helps with the target but is not mandatory.
-- `similar` links related nodes.
-- `application` links theory to use.
-- `transfer` links knowledge across contexts or subjects.
+- Later relation types may include `supports`, `similar`, `application`, or `transfer`, but the MVP should not accept them in validation until a feature needs them.
 
 Example record:
 
@@ -424,11 +417,12 @@ Notes:
 - Submit or self-check completes the existing TaskAttempt.
 - Incorrect, unsure, or skipped attempts must create or update Reviews.
 
-### Session
+### LearningSession
 
 Purpose:
 
 - Later phase: groups user activity for a learning session.
+- Distinct from Laravel's technical `sessions` table.
 
 Important fields:
 
@@ -453,9 +447,9 @@ Energy modes:
 
 Notes:
 
-- Sessions are not required for the narrow MVP.
+- LearningSessions are not required for the narrow MVP.
 - Red mode should keep work to 15 minutes or less.
-- Sessions should remain lightweight when implemented later.
+- LearningSessions should remain lightweight when implemented later.
 
 ### Review
 
@@ -507,7 +501,7 @@ Important fields:
 - `user_id`
 - `learning_node_id`
 - `status`
-- `mastery_score`
+- `mastery_score` internal or later only; V1/B4 APIs do not expose it
 - `correct_attempts`
 - `incorrect_attempts`
 - `unsure_attempts`
@@ -569,7 +563,7 @@ Important fields:
 - `id`
 - `user_id`
 - `simulation_definition_id`
-- `session_id` nullable
+- `learning_session_id` nullable
 - `status`
 - `started_at`
 - `completed_at`
@@ -580,7 +574,7 @@ Relationships:
 
 - Belongs to User.
 - Belongs to SimulationDefinition.
-- Belongs to Session optionally.
+- Belongs to LearningSession optionally.
 
 Notes:
 
@@ -588,59 +582,61 @@ Notes:
 - SimulationRun does not replace TaskAttempt.
 - Simulation progress should update MasteryState only through explicit rules.
 
-### Achievement
+### Forbidden Motivation Tables
 
 Purpose:
 
-- Later phase: represents a durable user achievement or badge.
+- Prevent pressure-based motivation from entering the V1 or B4 data model.
 
-Important fields:
+Forbidden tables and equivalents:
 
-- `id`
-- `user_id`
-- `type`
-- `key`
-- `title`
-- `description`
-- `awarded_at`
-- `metadata` JSON
-
-Relationships:
-
-- Belongs to User.
+- `xp_events`
+- `achievements`
+- `badges`
+- `streaks`
+- `streak_freezes`
+- `leaderboard_entries`
+- `reward_levels`
 
 Notes:
 
-- Not part of the narrow MVP.
-- Avoid shame-based streak achievements.
-- Achievements should recognize meaningful learning evidence.
+- Nuvio motivates through MasteryStates, Reviews, Today selection, and compact Progress Summary.
+- Learning evidence belongs in TaskAttempts, Reviews, MasteryStates, and path progress.
+- Do not create a parallel reward, collection, rank, or series-maintenance model.
 
-### XpEvent
+### Playful Response Metadata
 
 Purpose:
 
-- Later phase: stores event-based gamification points.
+- Make learning state visible without creating durable reward systems.
 
-Important fields:
+Allowed V1 response-only fields:
 
-- `id`
-- `user_id`
-- `source_type`
-- `source_id`
-- `points`
-- `reason`
-- `created_at`
+- `previous_status`
+- `new_status`
+- `next_state`
+- `review_scheduled`
+- `mastery_transition`
 
-Relationships:
+Allowed B4 response-only fields:
 
-- Belongs to User.
-- Morphs to source model if polymorphic sources are used.
+- `completion_state`
+- `mastery_moment`
+
+Later response-only fields:
+
+- `challenge_options`
+- `is_next_available`
+- `is_review_ready`
 
 Notes:
 
-- Not part of the narrow MVP.
-- Gamification should be event-based.
-- XP should not be the source of truth for mastery.
+- These fields should be derived from TaskAttempts, Reviews, MasteryStates, LearningPath order, and deterministic task selection.
+- They do not require new reward tables.
+- They must not be used as source of truth for mastery.
+- They must describe the next useful learning state, not debt, missed work, rank, reward, or pressure.
+- `challenge_options` are Later and may contain only learning actions such as `similar_task`, `slightly_harder`, and `short_review` when specified.
+- Skill-Map node state is Later and is a view over existing SkillGraph and MasteryState data.
 
 ### AiInteraction Later Phase
 
@@ -688,7 +684,7 @@ Notes:
 - `TaskVersion`
 - `TaskNode`
 - `TaskAttempt`
-- `Session`
+- `LearningSession`
 - `Review`
 - `MasteryState`
 
@@ -696,8 +692,6 @@ Later-phase model names:
 
 - `SimulationDefinition`
 - `SimulationRun`
-- `Achievement`
-- `XpEvent`
 - `AiInteraction`
 
 ## 4. Suggested Database Tables
@@ -721,13 +715,23 @@ Required MVP tables:
 
 Later tables, not part of the MVP:
 
-- `sessions`
+- `learning_sessions`
 - `simulation_definitions`
 - `simulation_definition_nodes`
 - `simulation_runs`
-- `achievements`
-- `xp_events`
 - `ai_interactions`
+
+Forbidden V1/B4 motivation tables:
+
+- `xp_events`
+- `achievements`
+- `badges`
+- `streaks`
+- `streak_freezes`
+- `leaderboard_entries`
+- `reward_levels`
+- `comeback_streaks`
+- `loot_rewards`
 
 ## 5. Important Indexes
 
@@ -753,9 +757,8 @@ Recommended indexes:
 
 Later indexes:
 
-- `sessions(user_id, started_at)`.
+- `learning_sessions(user_id, started_at)`.
 - `simulation_runs(user_id, simulation_definition_id, started_at)`.
-- `xp_events(user_id, created_at)`.
 - `ai_interactions(user_id, created_at)` later.
 
 ## 6. Validation Rules
@@ -765,7 +768,7 @@ Later indexes:
 - A LearningNode must have a valid `type`, `title`, and `slug`.
 - A LearningNode can belong to one or more Subjects.
 - A NodeRelation cannot connect a node to itself.
-- NodeRelation type must be one of `prerequisite`, `supports`, `similar`, `application`, or `transfer`.
+- NodeRelation type must be `prerequisite` in the MVP.
 - Duplicate NodeRelations for the same source, target, and type are not allowed.
 - A LearningPathNode must reference an active LearningPath and LearningNode.
 - Path positions must be unique within a LearningPath.
@@ -790,7 +793,7 @@ Later indexes:
 
 - Users can access official tasks.
 - Users can access their own user-created tasks only after custom tasks are implemented.
-- Users cannot access another user's private tasks, sessions, reviews, attempts, or mastery states.
+- Users cannot access another user's private tasks, LearningSessions, reviews, attempts, or mastery states.
 
 ## 7. MVP Simplifications
 
@@ -799,9 +802,9 @@ Later indexes:
 - Use a simple integer mastery score.
 - Use deterministic review intervals.
 - Compute Today actions on request instead of persisting recommendations.
-- Do not implement Sessions in the narrow MVP.
+- Do not implement LearningSessions in the narrow MVP.
 - Do not implement simulations or simulation metadata in the narrow MVP.
-- Do not implement achievements or XP in the narrow MVP.
+- Do not implement XP, badges, achievements, streaks, streak freezes, leaderboards, or reward levels in V1 or B4.
 - Do not implement AiInteraction or AI endpoints in the narrow MVP.
 
 ## 8. Future Extensions
@@ -813,6 +816,6 @@ Later indexes:
 - Add multiple task grading strategies.
 - Add user-created tasks and sharing workflow.
 - Add reusable simulations and simulation goals.
-- Add richer achievement rules.
+- Add richer learning evidence only through TaskAttempts, Reviews, MasteryStates, and path/project progress.
 - Add constrained AI teacher interactions with logging and safety checks.
 - Add graph visualization as a separate read model, not as a replacement for core tables.

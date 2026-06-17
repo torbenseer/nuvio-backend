@@ -1,6 +1,6 @@
 # Nuvio MVP API Specification
 
-Nuvio is a Laravel API backend for a Duolingo-like adult learning platform. The MVP API supports the loop:
+Nuvio is a Laravel API backend for an adult learning platform. The MVP API supports the loop:
 
 **Today -> Task -> Attempt -> Feedback -> Review -> Progress**
 
@@ -9,6 +9,14 @@ Nuvio is a Laravel API backend for a Duolingo-like adult learning platform. The 
 Base path: `/api`
 
 Authentication: Laravel Sanctum for authenticated learner endpoints.
+
+This document is canonical for MVP route names, request shapes, response shapes, and endpoint behavior. Other planning documents should be aligned to it when they disagree.
+
+Endpoint status labels:
+
+- **V1 required**: needed for the first integrated learning loop.
+- **B4 hardening**: required for full Backend MVP API completeness before Private Alpha, but not required before first frontend learning.
+- **Later**: outside the narrow MVP route set.
 
 Response shape:
 
@@ -37,20 +45,105 @@ Common errors:
 - `404` not found.
 - `422` validation failed.
 
-## 1. Today
+## 1. Auth And Preferences
 
-### GET /api/today
+Nuvio uses Laravel Sanctum cookie-based SPA authentication.
 
-Purpose: Return up to three recommended actions for the authenticated user.
+### GET /sanctum/csrf-cookie
+
+Status: **V1 required** if V1 uses Sanctum login; otherwise **B4 hardening** after a pre-provisioned learner is used internally.
+
+Purpose: Issue the CSRF cookie required before login and state-changing SPA requests.
+
+### POST /login
+
+Status: **V1 required** if V1 uses Sanctum login; otherwise **B4 hardening** after a pre-provisioned learner is used internally.
+
+Purpose: Authenticate a learner through Laravel's cookie session flow.
+
+### POST /logout
+
+Status: **V1 required** if V1 uses Sanctum login; otherwise **B4 hardening** after a pre-provisioned learner is used internally.
+
+Purpose: End the current authenticated browser session.
+
+### GET /api/user
+
+Status: **V1 required**
+
+Purpose: Return the authenticated learner and persisted locale preferences.
+
+Response example:
+
+```json
+{
+  "data": {
+    "id": 1,
+    "name": "Ada Learner",
+    "email": "ada@example.com",
+    "locale": "de",
+    "timezone": "Europe/Berlin"
+  }
+}
+```
+
+Error cases:
+
+- `401` if unauthenticated.
+
+### PUT /api/user/preferences
+
+Status: **B4 hardening**. May move into **V1 required** only if persisted locale/timezone preferences are implemented in the first slice.
+
+Purpose: Persist narrow learner preferences needed by the first frontend slice.
 
 Request example:
 
 ```json
 {
-  "query": {
-    "mode": "red"
+  "locale": "de",
+  "timezone": "Europe/Berlin"
+}
+```
+
+Response example:
+
+```json
+{
+  "data": {
+    "locale": "de",
+    "timezone": "Europe/Berlin"
   }
 }
+```
+
+Validation:
+
+- `locale` is required and must be a supported BCP 47 UI locale.
+- `timezone` is required and must be an IANA timezone.
+
+Content ownership:
+
+- Backend owns learning content and feedback display strings.
+- Frontend owns app chrome translations.
+
+Registration:
+
+- The backend MVP may provide registration support for API tests and local setup.
+- The first frontend slice does not include signup or password-reset UI.
+
+## 2. Today
+
+### GET /api/today
+
+Status: **V1 required**
+
+Purpose: Return up to three recommended actions for the authenticated user.
+
+Request example. V1 sends no query parameters:
+
+```json
+{}
 ```
 
 Response example:
@@ -60,9 +153,8 @@ Response example:
   "data": [
     {
       "type": "review",
-      "title": "Review Ohm's law",
-      "reason": "You marked this unsure recently.",
-      "estimated_minutes": 8,
+      "title": "Lineare Gleichungen kurz auffrischen",
+      "estimated_minutes": 5,
       "priority": 1,
       "target": {
         "type": "review",
@@ -71,16 +163,15 @@ Response example:
     }
   ],
   "meta": {
-    "mode": "red",
-    "limit": 3,
-    "hidden_due_reviews": 6
+    "limit": 3
   }
 }
 ```
 
 Validation:
 
-- `mode` is optional and must be `red`, `yellow`, or `green`.
+- V1 accepts no Today filters or query parameters.
+- Requests such as `GET /api/today?mode=red` are outside V1. Energy Mode is B4 through `POST /api/today/mode`.
 
 Side effects:
 
@@ -89,19 +180,24 @@ Side effects:
 Error cases:
 
 - `401` if unauthenticated.
-- `422` if mode is invalid.
 
 Acceptance criteria:
 
 - Returns at most three actions.
+- Response includes `meta.limit`.
+- Each action title is concrete enough to start without planning, such as a LearningNode-based task or review title.
 - Selects actions in this deterministic order:
   1. Due reviews ordered by `due_at`.
-  2. Review-due LearningNodes.
+  2. Start Path when the user has no active enrollment.
   3. The next Task in the active LearningPath.
-- Red mode returns actions of max 15 minutes when possible.
-- Does not expose an overwhelming review backlog.
+- Does not expose review backlog counts.
+- Does not expose streak, XP, badge, achievement, rank, reward level, catch-up, or lost-progress fields.
+- Does not expose `reason`, `mode`, `hidden_due_reviews`, `overdue_count`, missed-day, catch-up, debt, or pressure-state fields.
+- Review actions are ready-to-review work, not overdue work.
 
 ### POST /api/today/mode
+
+Status: **B4 hardening**. V1 does not accept a Today mode query parameter and does not persist Energy Mode.
 
 Purpose: Store or update the user's current energy mode.
 
@@ -129,7 +225,7 @@ Validation:
 
 Side effects:
 
-- Updates user preference or current session mode.
+- Updates user preference for later Today requests.
 
 Error cases:
 
@@ -141,9 +237,11 @@ Acceptance criteria:
 - Stored mode affects later Today selection.
 - Red mode keeps recommended work short.
 
-## 2. Learning Paths
+## 3. Learning Paths
 
 ### GET /api/learning-paths
+
+Status: **B4 hardening**. V1 enters the single Algebra Foundations path through the `start_path` Today action.
 
 Purpose: List active learning paths.
 
@@ -167,8 +265,8 @@ Response example:
       "slug": "algebra-foundations",
       "title": "Algebra Foundations",
       "subject": "Math",
-      "estimated_minutes": 240,
-      "node_count": 12
+    "estimated_minutes": 15,
+    "node_count": 3
     }
   ]
 }
@@ -193,6 +291,8 @@ Acceptance criteria:
 
 ### GET /api/learning-paths/{id}
 
+Status: **B4 hardening**.
+
 Purpose: Show a learning path with ordered LearningNodes.
 
 Request example:
@@ -207,11 +307,11 @@ Response example:
 {
   "data": {
     "id": 10,
-    "title": "Circuit Fundamentals",
+    "title": "Algebra Foundations",
     "nodes": [
       {
         "id": 101,
-        "title": "Identify voltage, current, and resistance",
+        "title": "Lineare Gleichungen loesen",
         "position": 1
       }
     ]
@@ -236,6 +336,8 @@ Acceptance criteria:
 - Nodes are returned in path order.
 
 ### POST /api/learning-paths/{id}/start
+
+Status: **V1 required**
 
 Purpose: Enroll the user in a learning path.
 
@@ -277,53 +379,13 @@ Acceptance criteria:
 - Starting the same path twice returns the existing active Enrollment.
 - Enrollment affects `GET /api/today`.
 
-### GET /api/enrollments/{id}/progress
+## 4. Learning Nodes
 
-Purpose: Return progress for one enrollment.
-
-Request example:
-
-```json
-{}
-```
-
-Response example:
-
-```json
-{
-  "data": {
-    "enrollment_id": 300,
-    "learning_path_id": 10,
-    "status": "active",
-    "learned_nodes": 3,
-    "active_nodes": 2,
-    "weak_nodes": 1,
-    "percent_complete": 25
-  }
-}
-```
-
-Validation:
-
-- Enrollment must belong to the authenticated user.
-
-Side effects:
-
-- None.
-
-Error cases:
-
-- `401` if unauthenticated.
-- `403` if enrollment belongs to another user.
-- `404` if not found.
-
-Acceptance criteria:
-
-- Progress is derived from MasteryStates, not time spent.
-
-## 3. Learning Nodes
+Status: **B4 hardening** for the full section. V1 can use LearningNodes internally without exposing the node browsing API.
 
 ### GET /api/nodes
+
+Status: **B4 hardening**
 
 Purpose: List active LearningNodes.
 
@@ -332,7 +394,7 @@ Request example:
 ```json
 {
   "query": {
-    "subject": "physics",
+    "subject": "math",
     "type": "skill"
   }
 }
@@ -345,9 +407,9 @@ Response example:
   "data": [
     {
       "id": 201,
-      "slug": "calculate-average-speed",
+      "slug": "solve-linear-equations",
       "type": "skill",
-      "title": "Calculate average speed"
+      "title": "Lineare Gleichungen loesen"
     }
   ]
 }
@@ -371,6 +433,8 @@ Acceptance criteria:
 
 ### GET /api/nodes/{id}
 
+Status: **B4 hardening**
+
 Purpose: Show one LearningNode.
 
 Request example:
@@ -385,9 +449,9 @@ Response example:
 {
   "data": {
     "id": 201,
-    "title": "Calculate average speed",
-    "description": "Use distance divided by time to find average speed.",
-    "subjects": ["Physics"]
+    "title": "Lineare Gleichungen loesen",
+    "description": "Loese einfache Gleichungen mit einer Variablen.",
+    "subjects": ["Math"]
   }
 }
 ```
@@ -409,6 +473,8 @@ Acceptance criteria:
 - Includes subject membership.
 
 ### GET /api/nodes/{id}/tasks
+
+Status: **B4 hardening**
 
 Purpose: List available tasks linked to a LearningNode.
 
@@ -452,6 +518,8 @@ Acceptance criteria:
 
 ### GET /api/nodes/{id}/prerequisites
 
+Status: **B4 hardening**
+
 Purpose: List prerequisite LearningNodes.
 
 Request example:
@@ -490,9 +558,11 @@ Acceptance criteria:
 
 - Reads NodeRelations of type `prerequisite`.
 
-## 4. Tasks
+## 5. Tasks
 
 ### GET /api/tasks/{id}
+
+Status: **V1 required**
 
 Purpose: Show a task prompt and active TaskVersion.
 
@@ -510,10 +580,9 @@ Response example:
     "id": 800,
     "task_version_id": 1200,
     "type": "numeric",
-    "prompt": "A cart moves 12 meters in 3 seconds. What is its average speed?",
+    "prompt": "Loese 2x + 3 = 11.",
     "input": {
-      "kind": "number",
-      "unit": "m/s"
+      "kind": "number"
     },
     "estimated_minutes": 5
   }
@@ -537,8 +606,11 @@ Acceptance criteria:
 
 - Does not expose correct answer.
 - Includes TaskVersion ID.
+- Does not expose answer schemas, accepted values, grading tolerances, canonical solutions, or hidden correctness metadata.
 
 ### POST /api/task-attempts/start
+
+Status: **V1 required**
 
 Purpose: Start a task attempt. Starting a task creates a TaskAttempt.
 
@@ -583,10 +655,13 @@ Acceptance criteria:
 
 - Starting a task creates a TaskAttempt.
 - The attempt freezes the TaskVersion being attempted.
+- The attempt belongs only to the authenticated user.
 
 ### POST /api/task-attempts/{id}/submit
 
-Purpose: Submit an auto-graded task attempt.
+Status: **V1 required**
+
+Purpose: Submit an auto-graded task attempt, or mark the attempt as unsure or skipped.
 
 Request example:
 
@@ -598,6 +673,14 @@ Request example:
 }
 ```
 
+Unsure or skipped request example:
+
+```json
+{
+  "result": "unsure"
+}
+```
+
 Response example:
 
 ```json
@@ -605,13 +688,15 @@ Response example:
   "data": {
     "id": 4000,
     "result": "correct",
-    "feedback": "Correct. Average speed is distance divided by time.",
+    "feedback_key": "numeric_correct",
+    "feedback_text": "Richtig. Ziehe zuerst 3 ab und teile dann durch 2.",
     "mastery": {
       "learning_node_id": 201,
-      "status": "active",
-      "mastery_score": 35
+      "status": "practiced"
     },
-    "review_created": false
+    "review_created": false,
+    "review_scheduled": false,
+    "next_state": "practiced"
   }
 }
 ```
@@ -620,7 +705,9 @@ Validation:
 
 - Attempt must belong to user.
 - Attempt must not already be submitted.
-- Answer must match task type.
+- Request must include exactly one of `answer` or `result`.
+- `answer` must match task type when present.
+- `result` may be `unsure` or `skipped` when present.
 
 Side effects:
 
@@ -636,10 +723,22 @@ Error cases:
 
 Acceptance criteria:
 
+- Submit is atomic: TaskAttempt result, Review creation/update, and MasteryState update commit together or roll back together.
+- If atomicity is not available in the first implementation, feature tests must prove no partial state remains after grading, scheduler, or mastery failures.
+- Duplicate submit behavior is consistent: either always `409` after completion or idempotently returns the stored result. The chosen behavior must be documented in implementation tests.
+- Concurrent weak submissions for the same user, LearningNode, and Task must not create duplicate active Reviews.
 - Incorrect submissions create Reviews.
-- Attempt result is deterministic for the TaskVersion.
+- Unsure and skipped submissions create Reviews.
+- Attempt result is deterministic for the stored TaskVersion, even if the Task has a newer active TaskVersion.
+- Attempt and Review side effects remain isolated by authenticated user.
+- Response includes stable `feedback_key` plus short German `feedback_text`.
+- Response includes `next_state` and `review_scheduled` so the frontend can close the loop without pressure copy.
+- Incorrect, unsure, and skipped responses should communicate that Nuvio will bring the work back later.
+- Response does not expose `completion_state`, `challenge_options`, `mastery_score`, XP, badges, achievements, streaks, reward levels, or pressure state.
 
 ### POST /api/task-attempts/{id}/self-check
+
+Status: **Later**
 
 Purpose: Submit a self-check result for a non-auto-graded task.
 
@@ -685,9 +784,11 @@ Acceptance criteria:
 - Unsure self-check creates a Review.
 - Feedback should avoid shame-based language.
 
-## 5. Reviews
+## 6. Reviews
 
 ### GET /api/reviews/due
+
+Status: **B4 hardening**
 
 Purpose: List due reviews without overwhelming the user.
 
@@ -716,7 +817,6 @@ Response example:
   ],
   "meta": {
     "returned": 1,
-    "hidden_due_reviews": 5,
     "cap": 3
   }
 }
@@ -737,9 +837,67 @@ Error cases:
 Acceptance criteria:
 
 - Capped response prevents overwhelming backlog.
+- Response does not expose hidden backlog counts.
 - Due reviews can feed Today selection.
 
+### GET /api/reviews/{id}
+
+Status: **V1 required**
+
+Purpose: Return enough review detail to render and answer one review action.
+
+Request example:
+
+```json
+{}
+```
+
+Response example:
+
+```json
+{
+  "data": {
+    "id": 501,
+    "learning_node": {
+      "id": 301,
+      "title": "Lineare Gleichungen loesen"
+    },
+    "task": {
+      "id": 800,
+      "task_version_id": 1200,
+      "type": "numeric",
+      "prompt": "Loese 2x + 3 = 11.",
+      "input": {
+        "kind": "number"
+      },
+      "estimated_minutes": 5
+    },
+    "due_at": "2026-06-13T08:00:00Z"
+  }
+}
+```
+
+Validation:
+
+- Review must belong to the authenticated user.
+
+Side effects:
+
+- None.
+
+Error cases:
+
+- `403` if review belongs to another user.
+- `404` if review not found.
+
+Acceptance criteria:
+
+- Response can render the review prompt.
+- Response does not expose the correct answer.
+
 ### POST /api/reviews/{id}/answer
+
+Status: **V1 required**
 
 Purpose: Answer a review and update its schedule.
 
@@ -748,8 +906,16 @@ Request example:
 ```json
 {
   "answer": {
-    "value": 2
+    "value": 4
   }
+}
+```
+
+Unsure or skipped request example:
+
+```json
+{
+  "result": "unsure"
 }
 ```
 
@@ -761,9 +927,22 @@ Response example:
     "review_id": 501,
     "attempt_id": 4100,
     "result": "correct",
+    "feedback_key": "numeric_correct",
+    "feedback_text": "Richtig. Ziehe zuerst 3 ab und teile dann durch 2.",
     "status": "completed",
     "next_due_at": null,
-    "interval_days": null
+    "interval_days": null,
+    "mastery": {
+      "learning_node_id": 201,
+      "previous_status": "review_due",
+      "status": "retained"
+    },
+    "review_scheduled": false,
+    "next_state": "retained",
+    "mastery_transition": {
+      "previous_status": "review_due",
+      "status": "retained"
+    }
   }
 }
 ```
@@ -771,7 +950,9 @@ Response example:
 Validation:
 
 - Review must belong to user.
-- Answer must match linked task type.
+- Request must include exactly one of `answer` or `result`.
+- Answer must match linked task type when present.
+- `result` may be `unsure` or `skipped` when present.
 
 Side effects:
 
@@ -783,14 +964,25 @@ Error cases:
 
 - `403` if review belongs to another user.
 - `404` if review not found.
+- `409` if review is already `completed` or `suspended`.
 - `422` for malformed answer.
 
 Acceptance criteria:
 
+- Review answer is atomic: TaskAttempt result, Review status/schedule, and MasteryState update commit together or roll back together.
+- Completed or suspended Reviews cannot be answered through the normal answer path.
+- Parallel weak review answers must keep one active scheduled Review and must not create duplicate active Reviews.
+- Review attempts and side effects remain isolated by authenticated user.
+- Review grading uses the TaskVersion stored for the created review attempt or linked immutable task version, not a later TaskVersion.
 - Correct review completes the Review and can move MasteryState to `retained`.
 - Incorrect, unsure, or skipped review keeps review near-term.
+- Response includes `next_state`, `review_scheduled`, and `mastery_transition`.
+- V1 response does not expose `mastery_moment` or `mastery_score`.
+- Review feedback frames the work as ready to review or reactivated, not as failure or punishment.
 
 ### POST /api/reviews/{id}/snooze
+
+Status: **B4 hardening**
 
 Purpose: Delay a review without marking it learned.
 
@@ -833,9 +1025,11 @@ Acceptance criteria:
 - Snoozing does not improve mastery.
 - Snoozed reviews can return later without creating backlog pressure.
 
-## 6. Progress
+## 7. Progress
 
 ### GET /api/progress/summary
+
+Status: **V1 required**
 
 Purpose: Return a compact progress summary.
 
@@ -874,8 +1068,19 @@ Error cases:
 Acceptance criteria:
 
 - Progress is based on MasteryStates, attempts, and reviews, not only time.
+- Progress fields describe competence status and scheduled review work only.
+- `reviews_due` is neutral orientation for currently due review work, not a debt, remainder, missed-work count, or obligation counter.
+- V1 Progress Summary stays compact and must not create a backlog-debt representation.
+- The response must not include XP totals, badges, achievements, streaks, streak freezes, leaderboard rank, reward levels, catch-up debt, missed-day penalty, or lost-progress state.
+- If B4 adds `next_useful_action`, it must remain a single orientation field and must not expose a missed-work list.
+
+Optional metadata:
+
+- V1 and B4 do not expose `returning_after_break`, missed-day counts, catch-up goals, loss state, or streak repair.
 
 ### GET /api/progress/paths/{id}
+
+Status: **B4 hardening**
 
 Purpose: Return progress for one LearningPath.
 
@@ -892,13 +1097,17 @@ Response example:
   "data": {
     "learning_path_id": 10,
     "title": "Algebra Foundations",
-    "percent_complete": 33,
+    "node_counts": {
+      "unknown": 0,
+      "practiced": 1,
+      "review_due": 1,
+      "retained": 1
+    },
     "nodes": [
       {
         "id": 101,
-        "title": "Solve one-step equations",
-        "status": "retained",
-        "mastery_score": 82
+        "title": "Lineare Gleichungen loesen",
+        "status": "retained"
       }
     ]
   }
@@ -920,14 +1129,82 @@ Error cases:
 Acceptance criteria:
 
 - Path progress is derived from ordered LearningNodes and MasteryStates.
+- Path progress must not expose `percent_complete`, `mastery_score`, reward levels, or collection completion as a substitute for competence status.
 
-## 7. Later API Boundaries
+### GET /api/progress/paths/{id}/skill-map
+
+Status: **Later**
+
+Purpose: Return a compact Skill-Map view for one LearningPath.
+
+Request example:
+
+```json
+{}
+```
+
+Response example:
+
+```json
+{
+  "data": {
+    "learning_path_id": 10,
+    "title": "Algebra Foundations",
+    "nodes": [
+      {
+        "learning_node_id": 201,
+        "title": "Lineare Gleichungen",
+        "status": "review_due",
+        "is_next_available": true,
+        "is_review_ready": true,
+        "position": 1,
+        "prerequisite_ids": []
+      }
+    ]
+  }
+}
+```
+
+Validation:
+
+- User must be enrolled or path must be public.
+
+Side effects:
+
+- None.
+
+Error cases:
+
+- `404` if path not found.
+
+Acceptance criteria:
+
+- Skill-Map is derived from LearningPath order, LearningNodes, NodeRelations, Reviews, and MasteryStates.
+- Node status is one of `unknown`, `practiced`, `review_due`, or `retained`.
+- Response does not include stars, level numbers, badge slots, achievements, XP, streaks, ranks, reward locks, catch-up requirements, or backlog lists.
+- Today remains the main action surface; this endpoint supports compact secondary navigation only.
+
+## 8. Later API Boundaries
+
+Status: **Later** or **Out of scope**
 
 The narrow MVP must not implement endpoints for:
 
 - Custom task creation.
+- Self-check tasks.
+- Challenge options.
+- Skill-Map.
 - Simulations or simulation runs.
-- XP events, achievements, or badges.
+- XP events, achievements, badges, streaks, streak freezes, leaderboards, reward levels, or gamified catch-up flows.
+- Lootbox-like reward reveals, countdown pressure, artificial scarcity, attendance rewards, or comeback streaks.
 - AI teacher interactions.
+- Equation transformation tasks are the first planned interactive Algebra format. Their future read API may expose only the initial equation, allowed operation types, and goal; canonical solutions and accepted steps must remain server-side for deterministic grading.
 
 When those phases begin, their API contracts should be added in separate sections and tested separately from the MVP learning loop.
+
+Motivation boundary:
+
+- Future APIs may add richer learning evidence, simulations, or project work.
+- Future APIs must still avoid reward currency, collection, rank, series-maintenance, and loss-repair mechanics unless this product principle is explicitly changed.
+- Snooze and review scheduling are recovery and learning-structure features, not reward protection features.
+- B4 playful fields are limited to Completion States and Mastery Moments after real learning evidence. Deterministic next learning choices and richer interaction formats are Later.

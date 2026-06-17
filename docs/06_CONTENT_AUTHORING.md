@@ -82,10 +82,10 @@ Optional fields:
 Allowed MVP types:
 
 - `skill`
-- `concept`
 
 Future types:
 
+- `concept`
 - `project_step`
 - `career_competency`
 - `simulation_goal`
@@ -122,22 +122,18 @@ Optional fields:
 - `strength`
 - `description`
 
-Allowed relation types:
+Allowed MVP relation types:
 
 - `prerequisite`
-- `supports`
-- `similar`
-- `application`
-- `transfer`
 
 Example:
 
 ```yaml
-from: linear-functions-slope-intercept
-to: voltage-divider-ratio
-type: transfer
-strength: 0.7
-description: Linear ratio reasoning supports voltage divider calculations.
+from: one-step-equations
+to: two-step-equations
+type: prerequisite
+strength: 1.0
+description: One-step equations should usually be practiced before two-step equations.
 ```
 
 ## 6. LearningPath Format
@@ -207,15 +203,19 @@ Optional fields:
 - `source`
 - `active`
 
-Allowed MVP task types:
+Allowed V1 task types:
 
 - `numeric`
+
+Allowed B4 task types:
+
 - `multiple_choice`
-- `self_check`
 
 Later task types:
 
+- `self_check`
 - `short_text`
+- `equation_transformation`
 
 Rules:
 

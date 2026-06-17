@@ -194,3 +194,30 @@ Open risks:
 Next:
 
 - Run the full backend test suite again and update the root backend submodule pointer.
+
+## 2026-06-17 - B4 Web Session Route Coverage
+
+Status: completed.
+
+Changed:
+
+- Added focused coverage for the existing browser-session auth routes in `routes/web.php`.
+- Covered `GET /sanctum/csrf-cookie`, successful `POST /login`, invalid credentials, and `POST /logout`.
+- Kept the route set classified as B4 hardening because V1 can use a pre-provisioned learner and full Sanctum package/config/CORS hardening is not complete.
+
+Commit:
+
+- `f0f9fb6 test: cover web auth session routes`
+
+Checks:
+
+- `php artisan test --filter=AuthSessionTest` passed: 4 tests, 13 assertions.
+
+Open risks:
+
+- The routes provide the local web session flow, but the backend still needs full B4 Sanctum package/configuration, stateful-domain, CORS credential, and browser-origin hardening before F2/A1.
+- `PUT /api/user/preferences` remains B4 and is not implemented.
+
+Next:
+
+- Align backend planning docs with the completed V1 state, then run the full backend test suite and update the root backend submodule pointer.

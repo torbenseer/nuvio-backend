@@ -2,7 +2,7 @@
 
 This document describes user flows that the Laravel API must support. It is not a frontend specification. It exists so backend endpoints, data models, and service behavior match the intended Nuvio experience.
 
-Nuvio should feel Duolingo-like: simple, motivating, focused on small daily actions, clear progress, reviews, and level-like learning paths.
+Nuvio should feel simple, adult-oriented, and product-specific: focused on small learning actions, clear competence evidence, reviews, and learning paths. It should not sound like a generic dashboard or motivational SaaS assistant.
 
 ## UX Principles
 
@@ -10,10 +10,27 @@ Nuvio should feel Duolingo-like: simple, motivating, focused on small daily acti
 - Keep the Today screen focused.
 - Avoid overwhelming dashboards.
 - Use short tasks and clear feedback.
+- Prefer concrete task or node names over repeated generic helper copy.
 - Treat failure as review input, not shame.
 - Missed reviews should not create an overwhelming backlog.
 - Progress should reflect practice, retention, and transfer.
-- Energy mode should shape the size of recommended work.
+- Energy mode is B4 and must not shape V1 Today selection.
+- Do not use XP, badges, achievements, streaks, streak freezes, leaderboards, reward levels, catch-up flows, lost-progress states, or backlog pressure.
+- Treat Unsure, Skip, and Snooze as normal recovery actions.
+
+## Fun Without Pressure Flows
+
+These flows define the desired feeling for the first visible interaction. They constrain copy, API shape, and frontend rendering so Nuvio feels useful without becoming a daily obligation.
+
+| Flow | Trigger | UI State | Allowed Copy | Forbidden Copy | API Requirement | Pressure Risk | Concrete Improvement |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| A. Opening Today after a normal day | App opens | Today with max three actions | "Heute"; "Such dir einen Einstieg aus. Einer reicht." | "Tagesziel", "noch X offen" | `GET /api/today` remains capped | Dashboard feeling | Name the first action concretely, for example by node or task |
+| B. Opening Today after a long break | Return after 7+ days | Normal Today, no accounting view | "Schön, dass du wieder da bist. Wir machen hier weiter." | "Du bist zurückgefallen" | No `missed_days`, `catch_up_required`, or debt fields | Guilt on return | Use return copy without a catch-up flow |
+| C. Incorrect answer | Wrong answer submitted | Feedback plus scheduled Review | "Noch nicht ganz. Das ist ein guter Punkt für die nächste Wiederholung." | "Falsch", "Versagt" | `review_scheduled: true` and neutral `next_state` | Error as punishment | Name the fachlicher nächster Schritt |
+| D. Unsure | Learner selects Unsure | Equal feedback path | "Unsicher markiert. Gute Entscheidung, das später noch einmal zu sehen." | "Aufgeben?" | `result=unsure` schedules Review | Hidden failure exit | Keep button visible next to Submit |
+| E. Skip | Learner skips | Friendly stop path | "Übersprungen. Du kannst die Stelle später wieder aufnehmen." | "Abbrechen und verlieren" | `result=skipped` schedules or defers cleanly | Feeling of breaking the system | Confirm later resumption warmly |
+| F. Successful Review | Review answered correctly | B4 small Mastery Moment | "Behalten. Du konntest es nach Abstand wieder abrufen." | "Level-Up", "Badge" | Optional `mastery_transition`; B4 `mastery_moment` only on evidence | Reward loop | Show only after real retention evidence |
+| G. No useful work right now | Selector has no useful action | Compact empty/progress state | "Für den Moment ist alles in Ordnung. Du kannst später weitermachen." | "Komm morgen wieder sonst..." | Empty or `progress_only` state | Artificial obligation | Do not create fake work |
 
 ## Energy Modes
 
@@ -23,7 +40,7 @@ Energy mode lets the learner choose the intensity of today's work.
 - `yellow`: normal 25 to 60 minute learning. Standard task or review session.
 - `green`: deeper work. In the MVP this only affects ordering and duration; simulations and project work are later phases.
 
-The backend should accept energy mode as input to Today selection and session creation.
+B4 may store the selected mode through `POST /api/today/mode`. V1 `GET /api/today` accepts no `mode` input and does not persist Energy Mode. Energy Mode should not create a LearningSession just to support mode selection.
 
 ## 1. Open Today Screen
 
@@ -55,7 +72,7 @@ The user opens the app or refreshes the Today screen.
 
 ### Success State
 
-The user sees at most three actions with clear reasons.
+The user sees at most three actions with clear titles and targets.
 
 ### Edge Cases
 
@@ -68,7 +85,8 @@ The user sees at most three actions with clear reasons.
 
 - Today returns at most three actions.
 - Due reviews are prioritized.
-- Each action has type, title, reason, estimated minutes, and target.
+- Each V1 action has type, title, estimated minutes, priority, and target.
+- V1 actions do not expose `reason`, `mode`, or `hidden_due_reviews`.
 - The response does not expose a large backlog.
 
 ## 2. Select Energy Mode
@@ -83,18 +101,18 @@ The user selects red, yellow, or green mode before starting a session.
 
 ### Backend Action
 
-- Store the selected mode on the Session or use it as a query parameter.
+- B4 stores the selected mode through `POST /api/today/mode`.
 - Filter or rank Today actions by estimated duration and action type.
 
 ### Data Created Or Updated
 
-- `sessions.energy_mode` when a session is created.
-- Optional user preference later.
+- Optional stored user mode for later Today requests.
+- No LearningSession record is required in the narrow MVP.
 
 ### Expected API Endpoints
 
-- `GET /api/today?energy_mode=red`
-- `POST /api/sessions`
+- V1: `GET /api/today`
+- B4: `POST /api/today/mode`
 
 ### Success State
 
@@ -169,6 +187,7 @@ The user submits an answer.
 
 - Validate answer shape.
 - Grade against the attempted TaskVersion.
+- Accept `result: unsure` or `result: skipped` instead of an answer for auto-graded attempts.
 - Complete the started TaskAttempt.
 - Update MasteryState.
 - Create or update Review if the attempt is `incorrect`, `unsure`, or `skipped`.
@@ -191,6 +210,7 @@ The user receives clear feedback and progress updates.
 ### Edge Cases
 
 - Malformed answer.
+- Request includes both `answer` and `result`.
 - TaskVersion mismatch.
 - Duplicate submit from retrying a request.
 - User submits after task was archived.
@@ -205,6 +225,8 @@ The user receives clear feedback and progress updates.
 
 ## 5. Complete A Self-Check Task
 
+Status: **Later**
+
 ### User Goal
 
 The user wants to honestly record whether they understood a task that may not be automatically graded.
@@ -218,7 +240,7 @@ The user completes a self-check task and marks outcome.
 - Validate self-check outcome.
 - Complete the started TaskAttempt with the result selected by user.
 - Update MasteryState conservatively.
-- Create Review for unsure or failed self-check.
+- Create Review for unsure or incorrect self-check.
 
 ### Data Created Or Updated
 
@@ -243,7 +265,7 @@ The user's self-assessment affects progress and reviews.
 ### Acceptance Criteria
 
 - Self-check attempts are distinguishable from auto-graded attempts.
-- Unsure, skipped, or failed self-check creates review work.
+- Unsure, skipped, or incorrect self-check creates review work.
 - Success can improve mastery but should be capped lower than auto-graded proof if needed.
 
 ## 6. Fail Or Mark A Task As Unsure
@@ -258,7 +280,7 @@ The user submits an incorrect answer, selects "unsure", or skips.
 
 ### Backend Action
 
-- Store attempt as `incorrect` or `unsure`.
+- Store attempt as `incorrect`, `unsure`, or `skipped`.
 - Update MasteryState.
 - Create or update Review.
 - Return supportive feedback and next action.
@@ -286,7 +308,7 @@ The system turns the weak attempt into future review work.
 
 ### Acceptance Criteria
 
-- No shame-based failure message.
+- No shame-based result message.
 - Incorrect, unsure, and skipped all create or update review.
 - Duplicate reviews are avoided for the same user, node, and task.
 
@@ -298,7 +320,7 @@ The user does not directly trigger this. The system creates review work from lea
 
 ### Trigger
 
-An incorrect, unsure, skipped, or failed self-check attempt is completed.
+An incorrect, unsure, skipped, or self-check attempt needing review is completed.
 
 ### Backend Action
 
@@ -314,7 +336,7 @@ An incorrect, unsure, skipped, or failed self-check attempt is completed.
 ### Expected API Endpoints
 
 - Usually internal service call from task-attempt submit or self-check endpoints.
-- `GET /api/reviews/due`
+- `GET /api/reviews/due` is B4. V1 surfaces one due Review through Today.
 
 ### Success State
 
@@ -359,8 +381,9 @@ The user starts a review action from Today.
 
 ### Expected API Endpoints
 
-- `GET /api/reviews/due`
+- `GET /api/reviews/{review}`
 - `POST /api/reviews/{review}/answer`
+- `GET /api/reviews/due` is B4
 
 ### Success State
 
@@ -401,9 +424,9 @@ The user selects a path from a subject list or Today recommendation.
 
 ### Expected API Endpoints
 
-- `GET /api/subjects`
-- `GET /api/subjects/{subject}/learning-paths`
-- `POST /api/enrollments`
+- `GET /api/learning-paths`
+- `GET /api/learning-paths/{learningPath}`
+- `POST /api/learning-paths/{learningPath}/start`
 
 ### Success State
 
@@ -444,7 +467,7 @@ The user opens Today or selects a continue action.
 ### Expected API Endpoints
 
 - `GET /api/today`
-- `GET /api/learning-paths/{learningPath}/progress`
+- `GET /api/progress/paths/{learningPath}`
 
 ### Success State
 
@@ -566,13 +589,11 @@ The frontend reports a completed simulation goal.
 - Validate SimulationRun.
 - Store completion payload.
 - Optionally update MasteryState through explicit rules.
-- Optionally create XP event.
 
 ### Data Created Or Updated
 
 - `simulation_runs`
 - Optional `mastery_states`
-- Optional `xp_events`
 
 ### Expected API Endpoints
 
@@ -594,11 +615,11 @@ The completed simulation goal is recorded and may affect progress.
 - Mastery changes only through explicit backend rules.
 - Simulation completion can appear in progress history later.
 
-## 14. Earn Progress Or Badge Later Phase Only
+## 14. Show Progress Without Pressure
 
 ### User Goal
 
-The user wants recognition for meaningful learning progress. Badge, XP, and achievement mechanics are not part of the MVP.
+The user wants to understand meaningful learning progress without maintaining a reward system.
 
 ### Trigger
 
@@ -608,28 +629,33 @@ The user completes tasks, reviews, nodes, paths, or simulation goals.
 
 - Update MasteryState.
 - Recalculate progress summary.
-- Later: optionally create XP event or badge event.
 
 ### Data Created Or Updated
 
 - `mastery_states`
-- Later only: `xp_events`, `badges`, or `badge_awards`
 
 ### Expected API Endpoints
 
 - `GET /api/progress/summary`
-- `GET /api/learning-paths/{learningPath}/progress`
-- Later only.
+- `GET /api/progress/paths/{learningPath}`
 
 ### Success State
 
 The user sees progress based on practice, retention, and transfer.
+
+The user does not see XP, badges, achievements, streaks, reward levels, ranks, catch-up debt, or lost-progress state.
 
 ### Edge Cases
 
 - User repeats easy tasks.
 - User misses reviews.
 - User completes a path but has weak prerequisite nodes.
+
+### Acceptance Criteria
+
+- Progress comes from MasteryStates, Reviews, TaskAttempts, and LearningPath order.
+- Review due state is presented as normal learning work.
+- Missed days do not create loss, repair flows, or pressure copy.
 
 ### Acceptance Criteria
 

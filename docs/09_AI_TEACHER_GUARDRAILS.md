@@ -204,7 +204,7 @@ Mode: `generate_review_card`
 
 Purpose:
 
-- Suggest a review card draft from a task or failed attempt.
+- Suggest a review card draft from a task or incorrect attempt.
 
 Request:
 

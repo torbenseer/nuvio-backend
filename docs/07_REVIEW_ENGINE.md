@@ -34,7 +34,9 @@ Reviews can be created or updated when:
 - A TaskAttempt is skipped.
 - A review attempt is incorrect, unsure, or skipped.
 
-Correct normal task attempts do not create retention reviews in the narrow MVP.
+Correct normal task attempts do not create retention reviews in the narrow MVP. This is a narrow MVP limitation, not a learning claim: V1 can mark first-attempt success as practiced, but it may not yet prove retention over time.
+
+B4 must add retention-review scheduling for correct first-time task solutions so that important skills are revisited after initial success.
 
 ## 4. Review Schedule
 
@@ -47,7 +49,7 @@ Default first schedule:
 Successful review:
 
 - Mark the Review as `completed`.
-- Move related MasteryState to `retained`.
+- Move related MasteryState to `retained`, meaning successful review evidence has been observed.
 
 Failed, skipped, or unsure review:
 
@@ -80,15 +82,16 @@ MasteryState statuses:
 - `unknown`: no evidence yet.
 - `practiced`: user has successful practice evidence.
 - `review_due`: review is due or recent evidence is weak.
-- `retained`: user has successful review evidence.
+- `retained`: user has successful review evidence. It is not a permanent mastery guarantee and must not be presented as a strong claim that the learner will always know the skill.
 
 Update rules:
 
 - Correct normal attempt can move `unknown` to `practiced`.
 - Incorrect or unsure attempt can move status to `review_due`.
 - Skipped attempt can move status to `review_due`.
-- Correct review can move `review_due` to `retained`.
+- Correct review can move `review_due` to `retained` in V1.
 - Repeated incorrect reviews can move `retained` back to `review_due`.
+- B4 should define `retained` more strictly as successful time-delayed retrieval, either after a minimum spacing interval or after multiple successful retrievals. This keeps Mastery Moments tied to real retention evidence rather than one immediate success.
 
 Mastery score, if used, must remain bounded, such as 0 to 100.
 
@@ -96,12 +99,19 @@ Mastery score, if used, must remain bounded, such as 0 to 100.
 
 Confidence and help-used evidence are not part of the narrow MVP.
 
+B4 must add:
+
+- Retention reviews for correct first-time answers.
+
 Later phases may add:
 
 - `confidence`: `low`, `medium`, `high`, or null.
 - `help_used`: boolean.
-- Retention reviews for correct answers.
 - Longer spaced repetition intervals such as 7, 21, and 60 days.
+- Transfer tasks that check whether a skill works in a changed context.
+- Variation mechanisms that avoid repeating only the same prompt shape.
+- Reflection prompts where the learner can name the strategy used.
+- Error-analysis mechanisms that classify recurring mistake patterns without shame.
 
 Until that phase begins, review scheduling depends only on `correct`, `incorrect`, `unsure`, and `skipped`.
 
@@ -119,7 +129,7 @@ Backend behavior:
 
 Do not:
 
-- Mark the learner as failed.
+- Mark the learner as a failure.
 - Display punitive streak loss.
 - Create duplicate Reviews for repeated incorrect attempts on the same task.
 
@@ -148,8 +158,8 @@ ADHD-friendly cap:
 API behavior:
 
 - `GET /api/today` returns max 3 actions total.
-- `GET /api/reviews/due` should accept a limit and default to a small number.
-- Responses may include `hidden_due_reviews` count, but should not list a huge backlog.
+- `GET /api/reviews/due` is B4. It should accept a limit and default to a small number when implemented.
+- V1/B4 UI-facing responses must not include `hidden_due_reviews`; internal observability may track backlog counts outside learner-facing API.
 
 Selection priority when many reviews are due:
 
@@ -160,6 +170,8 @@ Selection priority when many reviews are due:
 5. Older due date.
 
 ## 11. Snooze Behavior
+
+Status: **B4 hardening**. V1 review screens must not depend on Snooze.
 
 Snooze allows the user to delay a review without improving mastery.
 
@@ -198,19 +210,19 @@ Today selection should ask the review engine for due reviews first.
 Priority:
 
 1. Due reviews.
-2. Review-due MasteryStates.
+2. Start Path when the user has no active enrollment.
 3. Next task in active LearningPath.
 
 Constraints:
 
 - Return at most three actions.
-- Red mode should return actions of max 15 minutes when possible.
-- Review backlog should be summarized, not displayed as a long list.
+- V1 accepts no `mode` input and does not apply Energy Mode.
+- B4 Energy Mode may prefer short actions for low-energy mode when `POST /api/today/mode` is implemented.
+- Review backlog must not be displayed as a long list or debt count.
 
 Tie-breakers:
 
 - Due reviews are ordered by oldest `due_at` first.
-- Review-due MasteryStates are ordered by oldest `last_practiced_at` first, with nulls first.
 - Path tasks are selected by LearningPathNode position, then Task difficulty, then Task ID.
 
 ## 14. Edge Cases
@@ -218,6 +230,11 @@ Tie-breakers:
 - Task belongs to multiple LearningNodes: create reviews for primary nodes first; secondary nodes can update MasteryState lightly.
 - TaskVersion changed after attempt started: grade against the TaskVersion on the attempt.
 - User submits same attempt twice: reject or return existing result.
+- Submit and Review Answer must be atomic or covered by tests that prove partial state cannot remain after a failure.
+- Duplicate submit must consistently return `409` or consistently return the stored result idempotently.
+- Parallel weak attempts must not create duplicate active Reviews.
+- Completed or suspended Reviews cannot be answered through the normal answer path.
+- Attempts and Reviews are always scoped to the authenticated user.
 - Review points to archived task: select another task from the same LearningNode.
 - User has no enrollments: Today can recommend starting a path.
 - User has many overdue reviews: show only the capped set.
@@ -357,15 +374,13 @@ final class ReviewScheduler
 ```php
 final class TodaySelector
 {
-    public function actionsFor(User $user, string $mode = 'yellow'): array
+    public function actionsFor(User $user): array
     {
         $limit = 3;
-        $maxMinutes = $mode === 'red' ? 15 : null;
 
         $reviews = Review::query()
             ->where('user_id', $user->id)
             ->where('due_at', '<=', now())
-            ->when($maxMinutes, fn ($query) => $query->where('estimated_minutes', '<=', $maxMinutes))
             ->orderBy('due_at')
             ->limit($limit)
             ->get()
@@ -377,7 +392,7 @@ final class TodaySelector
 
         $remaining = $limit - $reviews->count();
 
-        $pathActions = $this->nextPathActions($user, $remaining, $maxMinutes);
+        $pathActions = $this->nextPathActions($user, $remaining);
 
         return $reviews
             ->concat($pathActions)
@@ -409,7 +424,8 @@ final class TodaySelector
 
 - Today shows max 3 due reviews.
 - Today does not return a huge backlog.
-- Red mode filters to reviews or tasks of max 15 minutes when available.
+- V1 Today accepts no Energy Mode input.
+- B4 Energy Mode filters to reviews or tasks of max 15 minutes when available.
 - Due reviews are selected before new path work.
 
 ### Mastery
@@ -422,18 +438,24 @@ final class TodaySelector
 ### Edge Cases
 
 - Duplicate incorrect attempts update existing Review.
+- Parallel weak attempts do not create duplicate active Reviews.
+- Completed or suspended Reviews cannot be answered again.
 - Review with archived task selects replacement task from same LearningNode.
 - Attempt is graded against stored TaskVersion.
-- Snooze does not improve mastery.
+- Snooze does not improve mastery when B4 implements it.
 
 ## 18. Acceptance Criteria
 
 - Reviews are created from incorrect, unsure, and skipped attempts.
 - Correct normal task attempts do not create retention reviews in the narrow MVP.
+- This lack of retention scheduling for correct first attempts is explicitly documented as a narrow MVP limitation.
+- B4 schedules retention reviews for correct first attempts.
 - Successful reviews are completed and update MasteryState to `retained`.
 - Today shows max 3 due reviews.
 - Review backlog is summarized, not displayed as a long list.
 - Missed reviews remain due and are reintroduced through capped Today selection.
-- Snoozing does not improve mastery.
+- Snoozing does not improve mastery when B4 implements it.
 - Review updates are deterministic and covered by tests.
 - Failure messaging is never shame-based.
+- `retained` means successful review evidence, not permanent mastery.
+- Transfer, variation, reflection, and error-analysis mechanisms are tracked as B4/Later learning gaps until specified.
