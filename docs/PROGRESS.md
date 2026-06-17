@@ -340,3 +340,33 @@ Open risks:
 Next:
 
 - Implement the first maintainability extraction slice for User, Preferences, Today, and Today Mode after the next behavior-critical B4 slice is chosen.
+
+## 2026-06-18 - B4 Today Red Mode Selection
+
+Status: completed.
+
+Changed:
+
+- Made `GET /api/today` read the authenticated user's persisted `energy_mode`.
+- Added Red Mode selection behavior that prefers available Today Actions with `estimated_minutes <= 15` while preserving the existing `data` and `meta.limit` response shape.
+- Kept Today capped at three Actions and continued to omit `mode`, `reason`, backlog counts, and pressure/gamification fields from the response.
+- Added direct test data in `TodaySelectorTest` instead of expanding seed breadth for this narrow selector slice.
+
+Commit:
+
+- `7eb2108 feat: make today selector mode aware`
+
+Checks:
+
+- `php artisan test --filter=TodaySelectorTest` passed: 6 tests, 205 assertions.
+- `php artisan test` passed: 36 tests, 397 assertions.
+
+Open risks:
+
+- Red Mode now has the first short-action preference rule, but Yellow and Green still behave like the existing default selector until later Energy Mode rules are explicitly defined.
+- `GET /api/today` and adjacent learning routes still live in `routes/api.php` closures or thin services; controller/resource extraction remains covered by backend issue `torbenseer/nuvio-backend#6`.
+- Fetching all due reviews is acceptable for the current MVP scale but may need a bounded candidate strategy when due review volume grows.
+
+Next:
+
+- Start the next B4 API slice: implement the read-only Learning Path/Node APIs from backend issue `torbenseer/nuvio-backend#3`, or take the focused controller/resource extraction slice for User, Preferences, Today, and Today Mode from backend issue `torbenseer/nuvio-backend#6`.
