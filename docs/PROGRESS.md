@@ -161,9 +161,36 @@ Checks:
 
 Open risks:
 
-- The V1 review attempt uses the currently active TaskVersion for the review read/answer path; B4 should persist and reuse a review-specific TaskVersion if content versioning changes before review completion.
 - Full ownership, validation, route matrix, node APIs, review due/snooze, and path progress remain B4 hardening.
 
 Next:
 
 - Run the broader backend test suite and then update the root backend submodule pointer if the backend remains green.
+
+## 2026-06-17 - V1 Review TaskVersion Pinning
+
+Status: completed.
+
+Changed:
+
+- Added `reviews.task_version_id` so review work can keep using the TaskVersion that created the review.
+- Updated task outcome scheduling to persist the attempted TaskVersion on created or updated Reviews.
+- Updated review read and answer routes to use the stored TaskVersion instead of a later active version.
+- Added regression coverage for review read/answer after a newer TaskVersion becomes active.
+
+Commit:
+
+- `a399154 fix: pin review task versions`
+
+Checks:
+
+- `php artisan test --filter='ReviewVersioningTest|MvpLearningLoopTest|OwnershipAndGuardrailTest|ReviewSchedulerTest|TaskAttemptFlowTest'` passed: 11 tests, 134 assertions.
+
+Open risks:
+
+- Existing reviews from pre-migration environments may have `task_version_id = null`; the route falls back to the active TaskVersion for those legacy rows.
+- B4 still needs a broader validation/ownership matrix for Review endpoints.
+
+Next:
+
+- Run the full backend test suite again and update the root backend submodule pointer.
