@@ -223,6 +223,22 @@ class TodaySelectorTest extends TestCase
         $this->assertTodayResponseContainsNoExcludedFields($response);
     }
 
+    public function test_today_rejects_query_filters(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->getJson('/api/today?mode=red')
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('mode');
+
+        $this->actingAs($user)
+            ->getJson('/api/today?limit=1')
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('limit');
+    }
+
     private function createTaskVersion(Task $task): void
     {
         TaskVersion::query()->create([

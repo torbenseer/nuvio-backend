@@ -794,3 +794,35 @@ Open risks:
 Next:
 
 - Finish backend issue `torbenseer/nuvio-backend#4` with a final route-specific edge-case pass, or move to backend issue `#7` if the remaining matrix risks are acceptable for now.
+
+## 2026-06-18 - B4 Validation Matrix Final Edge Pass
+
+Status: completed.
+
+Changed:
+
+- Finished the remaining backend issue `torbenseer/nuvio-backend#4` validation/ownership edge pass.
+- Added `GetTodayRequest` so `GET /api/today` rejects unsupported query filters such as `mode` or `limit` with Laravel JSON validation errors.
+- Added Task read edge coverage for inactive Tasks, missing Tasks, and active Tasks without an active TaskVersion.
+- Added Review detail coverage for missing Reviews and other-user Reviews.
+- Added Review answer coverage for other-user Reviews.
+- Updated `docs/11_TEST_PLAN.md` with the current B4 validation and ownership matrix test anchors.
+
+Commit:
+
+- Recorded in this validation matrix commit.
+
+Checks:
+
+- `php artisan test --filter=TodaySelectorTest` passed: 7 tests, 211 assertions.
+- `php artisan test --filter=TaskAttemptFlowTest` passed: 7 tests, 43 assertions.
+- `php artisan test --filter=ReviewDueApiTest` passed: 10 tests, 82 assertions.
+
+Open risks:
+
+- Backend issue `torbenseer/nuvio-backend#7` still needs content validation and expanded Algebra Foundations seed breadth.
+- Backend issue `torbenseer/nuvio-backend#1` still needs full Sanctum/CORS hardening.
+
+Next:
+
+- Close backend issue `torbenseer/nuvio-backend#4` after the full backend suite passes, then continue B4 with backend issue `#7`.

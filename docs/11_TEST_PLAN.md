@@ -110,6 +110,16 @@ Assertions:
 - Response JSON does not expose answer schemas before attempts.
 - Validation errors return `422`.
 
+Current B4 matrix anchors:
+
+- `AuthenticatedApiMatrixTest` covers `401` rejection across all learner-owned API routes except public `GET /api/status`.
+- `UserEndpointTest` covers user preference auth, valid updates, and locale/timezone validation.
+- `TodayModeTest` and `TodaySelectorTest` cover Energy Mode validation, Today caps, pressure-field guardrails, and unsupported Today query filters.
+- `LearningPathApiTest` and `LearningNodeApiTest` cover active-only reads, invalid filters, `404` behavior, authentication, no-answer-leak task lists, prerequisites, and Enrollment idempotency/reactivation.
+- `TaskAttemptFlowTest` covers Task read `404` behavior, start validation, submit validation, ownership, duplicate submit conflict, and no answer leaks.
+- `ReviewDueApiTest`, `ReviewVersioningTest`, and `OwnershipAndGuardrailTest` cover due Review caps, Review read/answer/snooze auth and ownership, validation, conflict behavior, TaskVersion pinning, and pressure guardrails.
+- `PathProgressApiTest` covers Progress Summary and Path Progress authentication, user-state isolation, inactive path/node behavior, and pressure-field guardrails.
+
 ## 5. Content Validation Tests
 
 Content validation tests should protect import quality.

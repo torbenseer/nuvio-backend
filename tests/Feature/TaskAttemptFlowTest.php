@@ -91,6 +91,44 @@ class TaskAttemptFlowTest extends TestCase
             ->assertJsonValidationErrors('task_version_id');
     }
 
+    public function test_task_read_returns_not_found_for_inactive_missing_or_unversioned_tasks(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+        $user = User::factory()->create();
+        $task = Task::query()->firstOrFail();
+
+        $task->forceFill(['active' => false])->save();
+
+        $this->actingAs($user)
+            ->getJson("/api/tasks/{$task->id}")
+            ->assertNotFound();
+
+        $taskWithoutVersion = Task::query()->create([
+            'slug' => 'task-without-active-version',
+            'type' => 'numeric',
+            'difficulty' => 1,
+            'estimated_minutes' => 5,
+            'active' => true,
+        ]);
+        TaskVersion::query()->create([
+            'task_id' => $taskWithoutVersion->id,
+            'version' => 1,
+            'prompt' => 'Löse x + 1 = 2.',
+            'input_schema' => ['kind' => 'number'],
+            'answer_schema' => ['correct_value' => 1, 'tolerance' => 0],
+            'explanation' => 'Ziehe 1 ab.',
+            'active' => false,
+        ]);
+
+        $this->actingAs($user)
+            ->getJson("/api/tasks/{$taskWithoutVersion->id}")
+            ->assertNotFound();
+
+        $this->actingAs($user)
+            ->getJson('/api/tasks/999999')
+            ->assertNotFound();
+    }
+
     public function test_task_version_must_be_active_when_starting_attempt(): void
     {
         $this->seed(DatabaseSeeder::class);

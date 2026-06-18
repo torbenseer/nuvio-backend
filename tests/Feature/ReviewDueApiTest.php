@@ -80,6 +80,42 @@ class ReviewDueApiTest extends TestCase
             ->assertUnauthorized();
     }
 
+    public function test_review_detail_returns_not_found_or_forbidden_without_leaking_other_users_reviews(): void
+    {
+        Carbon::setTestNow('2026-06-18 09:00:00');
+        $this->seed(DatabaseSeeder::class);
+        $owner = User::factory()->create();
+        $other = User::factory()->create();
+        $node = LearningNode::query()->firstOrFail();
+        $task = Task::query()->firstOrFail();
+        $review = $this->createReview($owner, $node, $task, Carbon::now());
+
+        $this->actingAs($other)
+            ->getJson("/api/reviews/{$review->id}")
+            ->assertForbidden();
+
+        $this->actingAs($owner)
+            ->getJson('/api/reviews/999999')
+            ->assertNotFound();
+    }
+
+    public function test_review_answer_rejects_other_users_reviews(): void
+    {
+        Carbon::setTestNow('2026-06-18 09:00:00');
+        $this->seed(DatabaseSeeder::class);
+        $owner = User::factory()->create();
+        $other = User::factory()->create();
+        $node = LearningNode::query()->firstOrFail();
+        $task = Task::query()->firstOrFail();
+        $review = $this->createReview($owner, $node, $task, Carbon::now());
+
+        $this->actingAs($other)
+            ->postJson("/api/reviews/{$review->id}/answer", [
+                'answer' => ['value' => 4],
+            ])
+            ->assertForbidden();
+    }
+
     public function test_snooze_moves_due_date_without_improving_mastery(): void
     {
         Carbon::setTestNow('2026-06-18 09:00:00');
