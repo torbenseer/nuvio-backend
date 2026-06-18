@@ -450,12 +450,14 @@ Rules:
 
 Content should be importable by Laravel artisan commands.
 
-Recommended commands:
+Implemented validation command:
 
 ```bash
 php artisan nuvio:content:validate
-php artisan nuvio:content:import
 ```
+
+The command validates current database-backed seed content without importing or mutating content.
+`php artisan nuvio:content:import` remains a later command if structured file import is explicitly requested.
 
 Validation must check:
 

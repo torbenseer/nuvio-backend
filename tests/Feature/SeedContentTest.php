@@ -88,4 +88,13 @@ class SeedContentTest extends TestCase
             $this->assertSame(1, TaskVersion::query()->where('task_id', $task->id)->where('active', true)->count());
         }
     }
+
+    public function test_content_validation_command_accepts_seeded_database_content(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+
+        $this->artisan('nuvio:content:validate')
+            ->expectsOutput('Content validation passed.')
+            ->assertExitCode(0);
+    }
 }

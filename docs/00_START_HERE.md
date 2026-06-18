@@ -17,7 +17,7 @@ Status: **Current**
 - B4 review due and review snooze routes exist with focused tests.
 - Web session login/logout routes exist with focused tests, but full Sanctum package/config/CORS hardening remains B4.
 - Frontend is planning-only until explicitly started against the real V1 subset.
-- B4 Algebra Foundations seed breadth now includes three LearningNodes, six numeric Tasks, and prerequisite NodeRelations; content validation tooling remains open.
+- B4 Algebra Foundations seed breadth now includes three LearningNodes, six numeric Tasks, prerequisite NodeRelations, and validation-only content tooling.
 
 ## Active Goal
 
@@ -61,9 +61,8 @@ Product guardrail for the completed V1 tickets:
 Status: **B4 hardening**
 
 1. Complete full Sanctum package/configuration, stateful domains, CORS credentials, and browser-origin hardening.
-2. Expand validation and ownership matrices across the full canonical route set.
-3. Add content validation for the expanded Algebra Foundations seed.
-4. Improve maintainability by extracting route closures into focused controllers, Form Requests, API Resources, and services in small endpoint-group commits.
+2. Keep the first frontend slice aligned to the real V1/B4 API contracts once frontend implementation starts.
+3. Continue any remaining B4 hardening gaps found by integration, without adding pressure mechanics.
 
 ## Active API Subset
 

@@ -124,6 +124,11 @@ Current B4 matrix anchors:
 
 Content validation tests should protect import quality.
 
+Current anchors:
+
+- `ContentValidatorTest` covers duplicate and invalid slugs, missing Subject and LearningNode references, invalid NodeRelations, unsupported relation types, LearningPath node references/order, Tasks without LearningNode links, invalid numeric answer schemas, missing prompt/explanation fields, and active TaskVersion constraints.
+- `SeedContentTest` runs `php artisan nuvio:content:validate` against the seeded database content.
+
 Required tests:
 
 - Subject slugs are unique.

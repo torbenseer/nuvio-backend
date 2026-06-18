@@ -292,7 +292,7 @@ Out of scope:
 
 ### Ticket 2.2: Add Required Content Validation Skeleton
 
-Status: **B4 hardening**. Add earlier only if V1 seed data becomes hard to keep deterministic without it.
+Status: **completed** for validation-only seed/content tooling.
 
 Goal:
 
@@ -301,14 +301,13 @@ Goal:
 Files likely affected:
 
 - `app/Console/Commands/ValidateContentCommand.php`
-- `app/Console/Commands/ImportContentCommand.php`
 - `app/Services/Content/ContentValidator.php`
 
 Implementation notes:
 
 - This is required for B4 release readiness.
-- This should be validation-only unless import is explicitly requested.
-- Validate slugs, references, and task schemas once tasks exist.
+- This is validation-only unless import is explicitly requested.
+- Validate slugs, references, path order, task-node links, active TaskVersion constraints, prompt/explanation fields, and numeric answer schemas.
 
 Acceptance criteria:
 
@@ -316,7 +315,8 @@ Acceptance criteria:
 
 Tests to add:
 
-- `ContentValidationTest`
+- `ContentValidatorTest`
+- `SeedContentTest`
 
 Out of scope:
 

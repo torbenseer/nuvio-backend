@@ -858,3 +858,34 @@ Open risks:
 Next:
 
 - Continue backend issue `torbenseer/nuvio-backend#7` with a validation-only content service or command that can fail invalid seed/content definitions before publication.
+
+## 2026-06-18 - B4 Content Validation Tooling
+
+Status: completed.
+
+Changed:
+
+- Completed backend issue `torbenseer/nuvio-backend#7` by adding validation-only content tooling for the expanded Algebra Foundations seed.
+- Added `ContentValidator` and `ContentValidationResult` for normalized content catalogs covering Subjects, LearningNodes, NodeRelations, LearningPaths, Tasks, and TaskVersions.
+- Added `php artisan nuvio:content:validate`, which validates current database-backed seed content without importing or mutating content.
+- Covered duplicate and invalid slugs, missing Subject and LearningNode references, invalid NodeRelations, self-relations, unsupported relation types, LearningPath node references/order, Tasks without LearningNode links, invalid numeric answer schemas, missing prompt/explanation fields, and active TaskVersion constraints.
+- Updated content authoring, implementation, start-here, and test planning docs for the completed validation-only gate.
+
+Commit:
+
+- Recorded in this content validation commit.
+
+Checks:
+
+- `./vendor/bin/pint --dirty` passed after formatting the new content service files.
+- `php artisan test --filter='ContentValidatorTest|SeedContentTest'` passed: 10 tests, 125 assertions.
+- `php artisan test` passed: 93 tests, 1045 assertions.
+
+Open risks:
+
+- Backend issue `torbenseer/nuvio-backend#1` still needs full Sanctum package/configuration, stateful domains, CORS credential handling, and browser-origin hardening before browser-origin frontend integration is fully hardened.
+- Structured YAML import remains out of scope until explicitly requested; the validator is ready for a future importer through its normalized catalog input.
+
+Next:
+
+- Run the full backend suite, close backend issue `torbenseer/nuvio-backend#7` if green, then update the root backend submodule pointer.
