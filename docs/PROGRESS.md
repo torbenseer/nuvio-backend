@@ -664,3 +664,34 @@ Open risks:
 Next:
 
 - Continue backend issue `torbenseer/nuvio-backend#6` with Review due/read/snooze/answer extraction, then Progress extraction.
+
+## 2026-06-18 - B4 Review Route Extraction
+
+Status: completed.
+
+Changed:
+
+- Continued backend issue `torbenseer/nuvio-backend#6` with the Review API extraction batch.
+- Moved `GET /api/reviews/due` into `ReviewController`, `ListDueReviewsRequest`, and `DueReviewResource`, preserving cap metadata and no hidden backlog counts.
+- Moved `GET /api/reviews/{review}` into `ReviewController` and `ReviewDetailResource`, preserving TaskVersion pinning and no-answer-leak review payloads.
+- Moved `POST /api/reviews/{review}/snooze` into `ReviewController`, `SnoozeReviewRequest`, and `SnoozedReviewResource`, preserving snooze-only scheduling behavior.
+- Moved `POST /api/reviews/{review}/answer` into `ReviewController`, `AnswerReviewRequest`, and `ReviewAnswerResource`, preserving grading, review scheduling, mastery transitions, and feedback fields.
+- Left only Progress route closures for the final backend issue `#6` extraction batch.
+
+Commit:
+
+- Recorded in this route extraction commit.
+
+Checks:
+
+- `php artisan test --filter='ReviewDueApiTest|ReviewVersioningTest|MvpLearningLoopTest|OwnershipAndGuardrailTest|ReviewSchedulerTest'` passed before the refactor: 14 tests, 181 assertions.
+- `php artisan test --filter='ReviewDueApiTest|ReviewVersioningTest|MvpLearningLoopTest|OwnershipAndGuardrailTest|ReviewSchedulerTest'` passed after the refactor: 14 tests, 181 assertions.
+
+Open risks:
+
+- Backend issue `torbenseer/nuvio-backend#6` remains open only for Progress route extraction.
+- `AnswerReviewRequest` and `SnoozeReviewRequest` now own review authorization; broader validation and ownership matrix hardening remains covered by backend issue `torbenseer/nuvio-backend#4`.
+
+Next:
+
+- Finish backend issue `torbenseer/nuvio-backend#6` with Progress Summary and Path Progress route extraction.
