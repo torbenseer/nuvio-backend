@@ -79,6 +79,23 @@ class DatabaseSeeder extends Seeder
                 'title' => 'Algebra Foundations',
                 'type' => 'subject_path',
                 'estimated_minutes' => 15,
+                'intro_explanations' => [
+                    'new' => [
+                        'title' => 'Lineare Gleichungen sind kleine Rückwärtsrätsel.',
+                        'body' => 'Du suchst die Zahl, die eine Aussage wahr macht: 2x + 3 = 11. Erst entfernst du, was x stört, dann bleibt x allein.',
+                        'usefulness' => 'Du kannst unbekannte Werte ausrechnen, statt sie zu raten.',
+                    ],
+                    'rough' => [
+                        'title' => 'Du kennst die Idee wahrscheinlich schon: beide Seiten bleiben im Gleichgewicht.',
+                        'body' => 'Der Trick ist, jeden Schritt auf beiden Seiten gleich zu machen. So wird aus einer vollen Gleichung nach und nach x = ...',
+                        'usefulness' => 'Du rechnest sauberer und erkennst schneller, welcher Schritt als Nächstes passt.',
+                    ],
+                    'confident' => [
+                        'title' => 'Hier geht es nicht um die Regel, sondern um Tempo und Sicherheit.',
+                        'body' => 'Du prüfst, ob du Gleichungen ohne Umweg umformen kannst und wo Klammern oder Textaufgaben dich kurz ausbremsen.',
+                        'usefulness' => 'Du machst die Grundlagen automatisch genug für schwierigere Aufgaben.',
+                    ],
+                ],
                 'active' => true,
             ],
         );

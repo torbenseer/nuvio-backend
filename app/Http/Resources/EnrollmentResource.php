@@ -16,6 +16,7 @@ class EnrollmentResource extends JsonResource
             'id' => $this->id,
             'learning_path_id' => $this->learning_path_id,
             'status' => $this->status,
+            'self_assessment' => $this->self_assessment,
             'started_at' => $this->started_at?->toJSON(),
         ];
     }

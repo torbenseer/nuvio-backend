@@ -8,11 +8,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class LearningPath extends Model
 {
-    protected $fillable = ['subject_id', 'slug', 'title', 'type', 'estimated_minutes', 'active'];
+    protected $fillable = ['subject_id', 'slug', 'title', 'type', 'estimated_minutes', 'intro_explanations', 'active'];
 
     protected function casts(): array
     {
-        return ['active' => 'boolean'];
+        return [
+            'active' => 'boolean',
+            'intro_explanations' => 'array',
+        ];
     }
 
     public function subject(): BelongsTo

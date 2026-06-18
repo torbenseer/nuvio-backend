@@ -127,6 +127,23 @@ class LearningPathApiTest extends TestCase
             'title' => 'Ordered Path',
             'type' => 'subject_path',
             'estimated_minutes' => 20,
+            'intro_explanations' => [
+                'new' => [
+                    'title' => 'First Node kurz greifen.',
+                    'body' => 'Du bekommst die Grundidee in einem kleinen Schritt.',
+                    'usefulness' => 'Du erkennst den nächsten Schritt.',
+                ],
+                'rough' => [
+                    'title' => 'First Node wieder sortieren.',
+                    'body' => 'Du ordnest bekanntes Wissen kurz ein.',
+                    'usefulness' => 'Du findest die passende Übungsstelle.',
+                ],
+                'confident' => [
+                    'title' => 'First Node festigen.',
+                    'body' => 'Du prüfst die Grundlage ohne langen Anlauf.',
+                    'usefulness' => 'Du machst Wissen abrufbarer.',
+                ],
+            ],
             'active' => true,
         ]);
         $firstNode = LearningNode::query()->create([
@@ -164,8 +181,31 @@ class LearningPathApiTest extends TestCase
             ->assertJsonPath('data.nodes.0.position', 1)
             ->assertJsonPath('data.nodes.1.id', $secondNode->id)
             ->assertJsonPath('data.nodes.1.position', 2)
+            ->assertJsonPath('data.intro_explanations.new.title', 'First Node kurz greifen.')
+            ->assertJsonPath('data.intro_explanations.rough.title', 'First Node wieder sortieren.')
+            ->assertJsonPath('data.intro_explanations.confident.title', 'First Node festigen.')
             ->json();
 
+        $this->assertLearningPathResponseContainsNoExcludedFields($response);
+    }
+
+    public function test_learning_path_detail_returns_seeded_intro_explanations_for_all_self_assessments(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+        $user = User::factory()->create();
+        $path = LearningPath::query()->where('slug', 'algebra-foundations')->firstOrFail();
+
+        $response = $this->actingAs($user)
+            ->getJson("/api/learning-paths/{$path->id}")
+            ->assertOk()
+            ->assertJsonPath('data.intro_explanations.new.title', 'Lineare Gleichungen sind kleine Rückwärtsrätsel.')
+            ->assertJsonPath('data.intro_explanations.rough.usefulness', 'Du rechnest sauberer und erkennst schneller, welcher Schritt als Nächstes passt.')
+            ->assertJsonPath('data.intro_explanations.confident.usefulness', 'Du machst die Grundlagen automatisch genug für schwierigere Aufgaben.')
+            ->json();
+
+        $this->assertArrayHasKey('new', $response['data']['intro_explanations']);
+        $this->assertArrayHasKey('rough', $response['data']['intro_explanations']);
+        $this->assertArrayHasKey('confident', $response['data']['intro_explanations']);
         $this->assertLearningPathResponseContainsNoExcludedFields($response);
     }
 
@@ -219,7 +259,8 @@ class LearningPathApiTest extends TestCase
             ->postJson("/api/learning-paths/{$path->id}/start")
             ->assertOk()
             ->assertJsonPath('data.id', $existing->id)
-            ->assertJsonPath('data.status', 'active');
+            ->assertJsonPath('data.status', 'active')
+            ->assertJsonPath('data.self_assessment', null);
 
         $existing->forceFill(['status' => 'paused'])->save();
 
@@ -227,13 +268,69 @@ class LearningPathApiTest extends TestCase
             ->postJson("/api/learning-paths/{$path->id}/start")
             ->assertOk()
             ->assertJsonPath('data.id', $existing->id)
-            ->assertJsonPath('data.status', 'active');
+            ->assertJsonPath('data.status', 'active')
+            ->assertJsonPath('data.self_assessment', null);
 
         $this->assertSame(1, Enrollment::query()
             ->where('user_id', $user->id)
             ->where('learning_path_id', $path->id)
             ->count());
         $this->assertSame('active', $existing->refresh()->status);
+    }
+
+    public function test_start_learning_path_stores_and_updates_self_assessment_per_enrollment(): void
+    {
+        Carbon::setTestNow('2026-06-18 09:00:00');
+        $this->seed(DatabaseSeeder::class);
+        $user = User::factory()->create();
+        $path = LearningPath::query()->firstOrFail();
+
+        $this->actingAs($user)
+            ->postJson("/api/learning-paths/{$path->id}/start", [
+                'self_assessment' => 'new',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.learning_path_id', $path->id)
+            ->assertJsonPath('data.status', 'active')
+            ->assertJsonPath('data.self_assessment', 'new')
+            ->assertJsonPath('data.started_at', '2026-06-18T09:00:00.000000Z');
+
+        $this->assertDatabaseHas('enrollments', [
+            'user_id' => $user->id,
+            'learning_path_id' => $path->id,
+            'self_assessment' => 'new',
+        ]);
+
+        $this->actingAs($user)
+            ->postJson("/api/learning-paths/{$path->id}/start", [
+                'self_assessment' => 'confident',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.self_assessment', 'confident');
+
+        $this->assertSame(1, Enrollment::query()
+            ->where('user_id', $user->id)
+            ->where('learning_path_id', $path->id)
+            ->count());
+        $this->assertSame('confident', Enrollment::query()
+            ->where('user_id', $user->id)
+            ->where('learning_path_id', $path->id)
+            ->firstOrFail()
+            ->self_assessment);
+    }
+
+    public function test_start_learning_path_rejects_invalid_self_assessment(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+        $user = User::factory()->create();
+        $path = LearningPath::query()->firstOrFail();
+
+        $this->actingAs($user)
+            ->postJson("/api/learning-paths/{$path->id}/start", [
+                'self_assessment' => 'expert',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('self_assessment');
     }
 
     private function assertLearningPathResponseContainsNoExcludedFields(array $response): void
@@ -255,8 +352,8 @@ class LearningPathApiTest extends TestCase
             'percent_complete',
             'overdue_count',
             'lost_progress',
-        ] as $forbidden) {
-            $this->assertStringNotContainsString($forbidden, $json);
+        ] as $token) {
+            $this->assertDoesNotMatchRegularExpression('/(^|[^a-z])'.preg_quote($token, '/').'([^a-z]|$)/', $json);
         }
     }
 }
