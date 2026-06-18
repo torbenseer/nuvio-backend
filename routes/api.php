@@ -10,6 +10,7 @@ use App\Models\Task;
 use App\Models\TaskAttempt;
 use App\Models\TaskVersion;
 use App\Services\Progress\ProgressSummary;
+use App\Services\Progress\PathProgress;
 use App\Services\Review\ReviewScheduler;
 use App\Services\Tasks\TaskGrader;
 use App\Services\Today\TodaySelector;
@@ -530,6 +531,18 @@ Route::middleware(['web', 'auth'])->group(function (): void {
     Route::get('/progress/summary', function (Request $request, ProgressSummary $summary): array {
         return [
             'data' => $summary->forUser($request->user()),
+        ];
+    });
+
+    Route::get('/progress/paths/{learningPath}', function (
+        Request $request,
+        LearningPath $learningPath,
+        PathProgress $progress,
+    ): array {
+        abort_unless($learningPath->active, 404);
+
+        return [
+            'data' => $progress->forUserAndPath($request->user(), $learningPath),
         ];
     });
 });
