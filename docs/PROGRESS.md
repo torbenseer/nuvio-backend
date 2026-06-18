@@ -500,3 +500,36 @@ Open risks:
 Next:
 
 - Close backend issue `torbenseer/nuvio-backend#3`, then choose the next B4 slice: due reviews/snooze (`#5`) or path progress (`#2`).
+
+## 2026-06-18 - B4 Path Progress API
+
+Status: completed.
+
+Changed:
+
+- Added `GET /api/progress/paths/{learningPath}` for authenticated learners with the canonical `{ "data": ... }` response shape.
+- Added a focused `PathProgress` service that derives path status from ordered active LearningNodes, the authenticated user's scheduled Reviews, and the authenticated user's MasteryStates.
+- Returned `learning_path_id`, `title`, neutral `node_counts`, and ordered node statuses of `unknown`, `practiced`, `review_due`, or `retained`.
+- Required the LearningPath to exist and be active; inactive or missing paths return `404`.
+- Added ownership coverage so other learners' MasteryStates and scheduled Reviews do not affect the response.
+- Added guardrail coverage that Path Progress does not expose `percent_complete`, `mastery_score`, XP, badges, achievements, streaks, reward levels, catch-up, debt, lost-progress, or collection-completion fields.
+- Completed backend issue `torbenseer/nuvio-backend#2`.
+
+Commit:
+
+- `8e9dc65 feat: add path progress api`
+
+Checks:
+
+- `php artisan test --filter=PathProgressApiTest` passed: 5 tests, 36 assertions.
+- `php artisan test` passed: 60 tests, 746 assertions.
+
+Open risks:
+
+- Path Progress still lives in `routes/api.php`; controller/resource extraction remains covered by backend issue `torbenseer/nuvio-backend#6`.
+- The endpoint treats active LearningPaths as public readable paths because there is no separate path visibility field yet; if private paths are added, ownership/visibility rules need a focused follow-up.
+- Review status currently treats any scheduled Review on a path node as `review_due`, matching existing MasteryState language but not exposing due counts or backlog pressure.
+
+Next:
+
+- Close backend issue `torbenseer/nuvio-backend#2`, then continue B4 with due reviews/snooze (`#5`) or maintainability extraction (`#6`).

@@ -13,7 +13,7 @@ Status: **Current**
 - `/up` health endpoint exists.
 - Boot/status, auth user, Today, task attempt, review, progress, review versioning, and guardrail tests exist.
 - Real V1 learning API routes exist for a pre-provisioned or authenticated learner.
-- B4 preference, Today mode, Learning Path, Learning Node, Node Task, and Node Prerequisite read routes exist with focused tests.
+- B4 preference, Today mode, Learning Path, Learning Node, Node Task, Node Prerequisite, and Path Progress routes exist with focused tests.
 - Web session login/logout routes exist with focused tests, but full Sanctum package/config/CORS hardening remains B4.
 - Frontend is planning-only until explicitly started against the real V1 subset.
 
@@ -60,10 +60,9 @@ Status: **B4 hardening**
 
 1. Complete full Sanctum package/configuration, stateful domains, CORS credentials, and browser-origin hardening.
 2. Add review due and snooze APIs.
-3. Add path progress API.
-4. Expand validation and ownership matrices across the full canonical route set.
-5. Add content validation and expand the small Algebra Foundations seed.
-6. Improve maintainability by extracting route closures into focused controllers, Form Requests, API Resources, and services in small endpoint-group commits.
+3. Expand validation and ownership matrices across the full canonical route set.
+4. Add content validation and expand the small Algebra Foundations seed.
+5. Improve maintainability by extracting route closures into focused controllers, Form Requests, API Resources, and services in small endpoint-group commits.
 
 ## Active API Subset
 
@@ -91,7 +90,7 @@ Status: **B4 hardening**
 | `GET /api/nodes/{id}/prerequisites` | implemented |
 | `GET /api/reviews/due` | B4 hardening |
 | `POST /api/reviews/{id}/snooze` | B4 hardening |
-| `GET /api/progress/paths/{learningPath}` | B4 hardening |
+| `GET /api/progress/paths/{learningPath}` | implemented |
 | AI, simulations, custom tasks, gamification, CMS, payments, community, public signup, mobile app | later |
 
 ## Definition Of Done For V1
