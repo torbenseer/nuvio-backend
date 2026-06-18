@@ -314,7 +314,24 @@ Response example:
         "title": "Lineare Gleichungen loesen",
         "position": 1
       }
-    ]
+    ],
+    "intro_explanations": {
+      "new": {
+        "title": "Lineare Gleichungen sind kleine Rückwärtsrätsel.",
+        "body": "Du suchst die Zahl, die eine Aussage wahr macht: 2x + 3 = 11. Erst entfernst du, was x stört, dann bleibt x allein.",
+        "usefulness": "Du kannst unbekannte Werte ausrechnen, statt sie zu raten."
+      },
+      "rough": {
+        "title": "Du kennst die Idee wahrscheinlich schon: beide Seiten bleiben im Gleichgewicht.",
+        "body": "Der Trick ist, jeden Schritt auf beiden Seiten gleich zu machen. So wird aus einer vollen Gleichung nach und nach x = ...",
+        "usefulness": "Du rechnest sauberer und erkennst schneller, welcher Schritt als Nächstes passt."
+      },
+      "confident": {
+        "title": "Hier geht es nicht um die Regel, sondern um Tempo und Sicherheit.",
+        "body": "Du prüfst, ob du Gleichungen ohne Umweg umformen kannst und wo Klammern oder Textaufgaben dich kurz ausbremsen.",
+        "usefulness": "Du machst die Grundlagen automatisch genug für schwierigere Aufgaben."
+      }
+    }
   }
 }
 ```
@@ -334,17 +351,27 @@ Error cases:
 Acceptance criteria:
 
 - Nodes are returned in path order.
+- Intro explanations include `new`, `rough`, and `confident`.
+- Intro explanations are backend-owned learning content and must stay short, concrete, and pressure-free.
 
 ### POST /api/learning-paths/{id}/start
 
 Status: **V1 required**
 
-Purpose: Enroll the user in a learning path.
+Purpose: Enroll the user in a learning path and optionally store the learner's self-assessment for this path.
 
 Request example:
 
 ```json
 {}
+```
+
+Self-assessment request example:
+
+```json
+{
+  "self_assessment": "rough"
+}
 ```
 
 Response example:
@@ -355,6 +382,7 @@ Response example:
     "id": 300,
     "learning_path_id": 10,
     "status": "active",
+    "self_assessment": "rough",
     "started_at": "2026-06-13T09:00:00Z"
   }
 }
@@ -363,21 +391,27 @@ Response example:
 Validation:
 
 - Path must be active.
+- `self_assessment` is optional and may be `new`, `rough`, or `confident`.
 
 Side effects:
 
 - Creates Enrollment if missing.
+- Persists `self_assessment` per user and LearningPath when provided.
 - May initialize MasteryStates lazily or immediately.
 
 Error cases:
 
 - `401` if unauthenticated.
 - `404` if path not found.
+- `422` if `self_assessment` is invalid.
 
 Acceptance criteria:
 
 - Starting the same path twice returns the existing active Enrollment.
+- Starting without `self_assessment` remains valid for compatibility.
+- Providing a new `self_assessment` updates the user's Enrollment for that path only.
 - Enrollment affects `GET /api/today`.
+- Self-assessment does not create scores, placement logic, levels, rewards, or pressure state.
 
 ## 4. Learning Nodes
 
