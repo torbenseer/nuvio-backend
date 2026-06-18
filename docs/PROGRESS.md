@@ -695,3 +695,34 @@ Open risks:
 Next:
 
 - Finish backend issue `torbenseer/nuvio-backend#6` with Progress Summary and Path Progress route extraction.
+
+## 2026-06-18 - B4 Progress Route Extraction
+
+Status: completed.
+
+Changed:
+
+- Finished backend issue `torbenseer/nuvio-backend#6` with the final Progress API extraction batch.
+- Moved `GET /api/progress/summary` into `ProgressController` and `ProgressSummaryResource`.
+- Moved `GET /api/progress/paths/{learningPath}` into `ProgressController` and `PathProgressResource`.
+- Preserved path active checks, authenticated-user state isolation, competence-status counts, ordered node statuses, and pressure/gamification guardrails.
+- Reduced `routes/api.php` to route declarations plus the small public `GET /api/status` closure.
+
+Commit:
+
+- Recorded in this route extraction commit.
+
+Checks:
+
+- `php artisan test --filter='PathProgressApiTest|MvpLearningLoopTest|OwnershipAndGuardrailTest'` passed before the refactor: 11 tests, 129 assertions.
+- `php artisan test --filter='PathProgressApiTest|MvpLearningLoopTest|OwnershipAndGuardrailTest'` passed after the refactor: 11 tests, 129 assertions.
+- `php artisan route:list --path=api --except-vendor` showed all learning-loop APIs except `GET /api/status` routed through controllers.
+
+Open risks:
+
+- Backend issue `torbenseer/nuvio-backend#6` is complete after this batch, but backend issue `#4` still needs the broader validation and ownership matrix over the extracted endpoints.
+- Backend issue `#7` still needs content validation and expanded Algebra Foundations seed breadth.
+
+Next:
+
+- Close backend issue `torbenseer/nuvio-backend#6`, then continue B4 with backend issue `#4` validation and ownership matrix hardening.

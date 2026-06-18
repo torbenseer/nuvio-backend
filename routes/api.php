@@ -3,6 +3,7 @@
 use App\Http\Controllers\EnrollmentController;
 use App\Http\Controllers\LearningNodeController;
 use App\Http\Controllers\LearningPathController;
+use App\Http\Controllers\ProgressController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\TaskAttemptController;
 use App\Http\Controllers\TaskController;
@@ -10,10 +11,6 @@ use App\Http\Controllers\TodayController;
 use App\Http\Controllers\TodayModeController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserPreferenceController;
-use App\Models\LearningPath;
-use App\Services\Progress\ProgressSummary;
-use App\Services\Progress\PathProgress;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/status', function (): array {
@@ -47,22 +44,6 @@ Route::middleware(['web', 'auth'])->group(function (): void {
     Route::get('/reviews/{review}', [ReviewController::class, 'show']);
     Route::post('/reviews/{review}/snooze', [ReviewController::class, 'snooze']);
     Route::post('/reviews/{review}/answer', [ReviewController::class, 'answer']);
-
-    Route::get('/progress/summary', function (Request $request, ProgressSummary $summary): array {
-        return [
-            'data' => $summary->forUser($request->user()),
-        ];
-    });
-
-    Route::get('/progress/paths/{learningPath}', function (
-        Request $request,
-        LearningPath $learningPath,
-        PathProgress $progress,
-    ): array {
-        abort_unless($learningPath->active, 404);
-
-        return [
-            'data' => $progress->forUserAndPath($request->user(), $learningPath),
-        ];
-    });
+    Route::get('/progress/summary', [ProgressController::class, 'summary']);
+    Route::get('/progress/paths/{learningPath}', [ProgressController::class, 'path']);
 });
