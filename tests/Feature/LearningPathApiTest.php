@@ -5,10 +5,12 @@ namespace Tests\Feature;
 use App\Models\LearningNode;
 use App\Models\LearningPath;
 use App\Models\LearningPathNode;
+use App\Models\Enrollment;
 use App\Models\Subject;
 use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 class LearningPathApiTest extends TestCase
@@ -95,6 +97,21 @@ class LearningPathApiTest extends TestCase
             ->assertJsonValidationErrors('subject');
     }
 
+    public function test_learning_path_routes_require_authentication(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+        $path = LearningPath::query()->firstOrFail();
+
+        $this->getJson('/api/learning-paths')
+            ->assertUnauthorized();
+
+        $this->getJson("/api/learning-paths/{$path->id}")
+            ->assertUnauthorized();
+
+        $this->postJson("/api/learning-paths/{$path->id}/start")
+            ->assertUnauthorized();
+    }
+
     public function test_learning_path_detail_returns_ordered_nodes(): void
     {
         $user = User::factory()->create();
@@ -166,6 +183,57 @@ class LearningPathApiTest extends TestCase
         $this->actingAs($user)
             ->getJson('/api/learning-paths/999999')
             ->assertNotFound();
+    }
+
+    public function test_start_learning_path_rejects_inactive_or_missing_paths(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+        $user = User::factory()->create();
+        $path = LearningPath::query()->firstOrFail();
+        $path->forceFill(['active' => false])->save();
+
+        $this->actingAs($user)
+            ->postJson("/api/learning-paths/{$path->id}/start")
+            ->assertNotFound();
+
+        $this->actingAs($user)
+            ->postJson('/api/learning-paths/999999/start')
+            ->assertNotFound();
+    }
+
+    public function test_start_learning_path_returns_existing_active_enrollment_and_reactivates_paused_enrollment(): void
+    {
+        Carbon::setTestNow('2026-06-18 09:00:00');
+        $this->seed(DatabaseSeeder::class);
+        $user = User::factory()->create();
+        $path = LearningPath::query()->firstOrFail();
+
+        $existing = Enrollment::query()->create([
+            'user_id' => $user->id,
+            'learning_path_id' => $path->id,
+            'status' => 'active',
+            'started_at' => Carbon::now()->subDay(),
+        ]);
+
+        $this->actingAs($user)
+            ->postJson("/api/learning-paths/{$path->id}/start")
+            ->assertOk()
+            ->assertJsonPath('data.id', $existing->id)
+            ->assertJsonPath('data.status', 'active');
+
+        $existing->forceFill(['status' => 'paused'])->save();
+
+        $this->actingAs($user)
+            ->postJson("/api/learning-paths/{$path->id}/start")
+            ->assertOk()
+            ->assertJsonPath('data.id', $existing->id)
+            ->assertJsonPath('data.status', 'active');
+
+        $this->assertSame(1, Enrollment::query()
+            ->where('user_id', $user->id)
+            ->where('learning_path_id', $path->id)
+            ->count());
+        $this->assertSame('active', $existing->refresh()->status);
     }
 
     private function assertLearningPathResponseContainsNoExcludedFields(array $response): void

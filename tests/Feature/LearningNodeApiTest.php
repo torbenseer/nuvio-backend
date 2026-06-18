@@ -121,6 +121,24 @@ class LearningNodeApiTest extends TestCase
             ->assertJsonValidationErrors('subject');
     }
 
+    public function test_learning_node_routes_require_authentication(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+        $node = LearningNode::query()->firstOrFail();
+
+        $this->getJson('/api/nodes')
+            ->assertUnauthorized();
+
+        $this->getJson("/api/nodes/{$node->id}")
+            ->assertUnauthorized();
+
+        $this->getJson("/api/nodes/{$node->id}/tasks")
+            ->assertUnauthorized();
+
+        $this->getJson("/api/nodes/{$node->id}/prerequisites")
+            ->assertUnauthorized();
+    }
+
     public function test_inactive_or_missing_learning_node_details_return_not_found(): void
     {
         $this->seed(DatabaseSeeder::class);

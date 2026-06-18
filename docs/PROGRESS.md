@@ -758,3 +758,39 @@ Open risks:
 Next:
 
 - Continue backend issue `torbenseer/nuvio-backend#4` with the next small validation/ownership batch, likely Learning Path and Learning Node unauthenticated/not-found/filter coverage.
+
+## 2026-06-18 - B4 Read API And Progress Matrix Slice
+
+Status: completed.
+
+Changed:
+
+- Continued backend issue `torbenseer/nuvio-backend#4` with a broader Learning Path, Learning Node, Enrollment, and Progress matrix slice.
+- Added a route-wide authenticated API matrix proving every learner-owned API route rejects unauthenticated requests with `401`, excluding only public `GET /api/status`.
+- Added Learning Path route auth coverage for list, detail, and start routes.
+- Added Learning Path start coverage for inactive and missing paths, existing active Enrollment reuse, and paused Enrollment reactivation without duplicate Enrollments.
+- Added Learning Node route auth coverage for list, detail, tasks, and prerequisites routes.
+- Added Progress Summary auth and authenticated-user isolation coverage across active paths, MasteryStates, and due Reviews.
+- Preserved active-only read behavior, existing validation response shapes, path progress guardrails, and no pressure/gamification fields.
+
+Commit:
+
+- Recorded in this validation matrix commit.
+
+Checks:
+
+- `php artisan test --filter=LearningPathApiTest` passed: 8 tests, 78 assertions.
+- `php artisan test --filter=LearningNodeApiTest` passed: 15 tests, 252 assertions.
+- `php artisan test --filter=PathProgressApiTest` passed: 7 tests, 56 assertions.
+- `php artisan test --filter=AuthenticatedApiMatrixTest` passed: 1 test, 20 assertions.
+- `php artisan test --filter='AuthenticatedApiMatrixTest|LearningPathApiTest|LearningNodeApiTest|PathProgressApiTest'` passed: 31 tests, 406 assertions.
+
+Open risks:
+
+- Backend issue `torbenseer/nuvio-backend#4` remains open for final matrix review across remaining route-specific edge cases, especially Task read inactive/no-active-version behavior, Review read not-found/ownership gaps beyond existing smoke coverage, and any API spec/test-plan documentation alignment.
+- Backend issue `torbenseer/nuvio-backend#7` still needs content validation and expanded Algebra Foundations seed breadth.
+- Backend issue `torbenseer/nuvio-backend#1` still needs full Sanctum/CORS hardening.
+
+Next:
+
+- Finish backend issue `torbenseer/nuvio-backend#4` with a final route-specific edge-case pass, or move to backend issue `#7` if the remaining matrix risks are acceptable for now.

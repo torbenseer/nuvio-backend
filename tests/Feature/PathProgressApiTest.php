@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Enrollment;
 use App\Models\LearningNode;
 use App\Models\LearningPath;
 use App\Models\LearningPathNode;
@@ -11,11 +12,87 @@ use App\Models\Subject;
 use App\Models\Task;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 class PathProgressApiTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_progress_summary_isolated_to_authenticated_user_state(): void
+    {
+        Carbon::setTestNow('2026-06-18 09:00:00');
+        $user = User::factory()->create();
+        $other = User::factory()->create();
+        [$path, $firstNode, $secondNode] = $this->createPathWithThreeNodes();
+        $task = Task::query()->create([
+            'slug' => 'summary-progress-task',
+            'type' => 'numeric',
+            'difficulty' => 1,
+            'estimated_minutes' => 5,
+            'active' => true,
+        ]);
+
+        Enrollment::query()->create([
+            'user_id' => $user->id,
+            'learning_path_id' => $path->id,
+            'status' => 'active',
+            'started_at' => Carbon::now(),
+        ]);
+        Enrollment::query()->create([
+            'user_id' => $other->id,
+            'learning_path_id' => $path->id,
+            'status' => 'active',
+            'started_at' => Carbon::now(),
+        ]);
+        MasteryState::query()->create([
+            'user_id' => $user->id,
+            'learning_node_id' => $firstNode->id,
+            'status' => 'practiced',
+        ]);
+        MasteryState::query()->create([
+            'user_id' => $user->id,
+            'learning_node_id' => $secondNode->id,
+            'status' => 'retained',
+        ]);
+        MasteryState::query()->create([
+            'user_id' => $other->id,
+            'learning_node_id' => $firstNode->id,
+            'status' => 'review_due',
+        ]);
+        Review::query()->create([
+            'user_id' => $user->id,
+            'learning_node_id' => $firstNode->id,
+            'task_id' => $task->id,
+            'status' => 'scheduled',
+            'due_at' => Carbon::now()->subMinute(),
+        ]);
+        Review::query()->create([
+            'user_id' => $other->id,
+            'learning_node_id' => $secondNode->id,
+            'task_id' => $task->id,
+            'status' => 'scheduled',
+            'due_at' => Carbon::now()->subMinute(),
+        ]);
+
+        $response = $this->actingAs($user)
+            ->getJson('/api/progress/summary')
+            ->assertOk()
+            ->assertJsonPath('data.active_paths', 1)
+            ->assertJsonPath('data.practiced_nodes', 1)
+            ->assertJsonPath('data.review_due_nodes', 0)
+            ->assertJsonPath('data.retained_nodes', 1)
+            ->assertJsonPath('data.reviews_due', 1)
+            ->json();
+
+        $this->assertPathProgressResponseContainsNoExcludedFields($response);
+    }
+
+    public function test_progress_summary_requires_authentication(): void
+    {
+        $this->getJson('/api/progress/summary')
+            ->assertUnauthorized();
+    }
 
     public function test_path_progress_returns_ordered_node_statuses_and_counts(): void
     {
