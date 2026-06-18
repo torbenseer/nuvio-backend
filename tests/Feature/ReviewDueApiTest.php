@@ -145,6 +145,83 @@ class ReviewDueApiTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_snooze_requires_authentication_and_scheduled_review(): void
+    {
+        Carbon::setTestNow('2026-06-18 09:00:00');
+        $this->seed(DatabaseSeeder::class);
+        $user = User::factory()->create();
+        $node = LearningNode::query()->firstOrFail();
+        $task = Task::query()->firstOrFail();
+        $review = $this->createReview($user, $node, $task, Carbon::now());
+
+        $this->postJson("/api/reviews/{$review->id}/snooze", [
+            'minutes' => 60,
+        ])->assertUnauthorized();
+
+        $review->forceFill([
+            'status' => 'completed',
+            'due_at' => null,
+            'completed_at' => Carbon::now(),
+        ])->save();
+
+        $this->actingAs($user)
+            ->postJson("/api/reviews/{$review->id}/snooze", [
+                'minutes' => 60,
+            ])
+            ->assertConflict();
+    }
+
+    public function test_review_answer_requires_authentication(): void
+    {
+        Carbon::setTestNow('2026-06-18 09:00:00');
+        $this->seed(DatabaseSeeder::class);
+        $user = User::factory()->create();
+        $node = LearningNode::query()->firstOrFail();
+        $task = Task::query()->firstOrFail();
+        $review = $this->createReview($user, $node, $task, Carbon::now());
+
+        $this->postJson("/api/reviews/{$review->id}/answer", [
+            'answer' => ['value' => 4],
+        ])->assertUnauthorized();
+    }
+
+    public function test_review_answer_requires_exactly_one_valid_answer_or_recovery_result(): void
+    {
+        Carbon::setTestNow('2026-06-18 09:00:00');
+        $this->seed(DatabaseSeeder::class);
+        $user = User::factory()->create();
+        $node = LearningNode::query()->firstOrFail();
+        $task = Task::query()->firstOrFail();
+        $review = $this->createReview($user, $node, $task, Carbon::now());
+
+        $this->actingAs($user)
+            ->postJson("/api/reviews/{$review->id}/answer", [])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('answer');
+
+        $this->actingAs($user)
+            ->postJson("/api/reviews/{$review->id}/answer", [
+                'answer' => ['value' => 4],
+                'result' => 'unsure',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('answer');
+
+        $this->actingAs($user)
+            ->postJson("/api/reviews/{$review->id}/answer", [
+                'answer' => ['value' => 'vier'],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('answer.value');
+
+        $this->actingAs($user)
+            ->postJson("/api/reviews/{$review->id}/answer", [
+                'result' => 'correct',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('result');
+    }
+
     private function createReview(User $user, LearningNode $node, Task $task, Carbon $dueAt): Review
     {
         return Review::query()->create([

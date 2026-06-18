@@ -726,3 +726,35 @@ Open risks:
 Next:
 
 - Close backend issue `torbenseer/nuvio-backend#6`, then continue B4 with backend issue `#4` validation and ownership matrix hardening.
+
+## 2026-06-18 - B4 Task And Review Validation Matrix Slice
+
+Status: completed.
+
+Changed:
+
+- Continued backend issue `torbenseer/nuvio-backend#4` with a focused TaskAttempt and Review interaction matrix slice.
+- Added unauthenticated coverage for task read, task attempt start, task attempt submit, review answer, and review snooze routes.
+- Added TaskAttempt submit validation coverage for missing payload, answer/result exclusivity, non-numeric answers, unsupported recovery results, foreign-user attempts, and already submitted attempts.
+- Added Review answer validation coverage for missing payload, answer/result exclusivity, non-numeric answers, and unsupported recovery results.
+- Added Review snooze conflict coverage for non-scheduled Reviews.
+- Hardened `StartTaskAttemptRequest` so a TaskVersion must be active and belong to the submitted Task, returning Laravel JSON validation errors instead of a route-level not-found response.
+
+Commit:
+
+- Recorded in this validation matrix commit.
+
+Checks:
+
+- `php artisan test --filter=TaskAttemptFlowTest` passed: 6 tests, 40 assertions.
+- `php artisan test --filter=ReviewDueApiTest` passed: 8 tests, 79 assertions.
+
+Open risks:
+
+- Backend issue `torbenseer/nuvio-backend#4` remains open for the remaining route groups, especially Learning Path/Node unauthenticated matrix gaps, Progress summary/path edge cases, and any remaining ownership isolation cases.
+- Backend issue `torbenseer/nuvio-backend#7` still needs content validation and expanded Algebra Foundations seed breadth.
+- Backend issue `torbenseer/nuvio-backend#1` still needs full Sanctum/CORS hardening.
+
+Next:
+
+- Continue backend issue `torbenseer/nuvio-backend#4` with the next small validation/ownership batch, likely Learning Path and Learning Node unauthenticated/not-found/filter coverage.
