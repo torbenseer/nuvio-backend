@@ -630,3 +630,37 @@ Open risks:
 Next:
 
 - Continue backend issue `torbenseer/nuvio-backend#6` with the Enrollment and Task/TaskAttempt extraction batch, or switch to validation matrix hardening if behavior coverage becomes more urgent.
+
+## 2026-06-18 - B4 Enrollment And Task Attempt Route Extraction
+
+Status: completed.
+
+Changed:
+
+- Continued backend issue `torbenseer/nuvio-backend#6` with the Enrollment, Task, and TaskAttempt extraction batch.
+- Moved `POST /api/learning-paths/{learningPath}/start` into `EnrollmentController` and `EnrollmentResource`, preserving the existing `200` response status for created and existing Enrollments.
+- Moved `GET /api/tasks/{task}` into `TaskController` and `TaskResource`, preserving the no-answer-leak task payload.
+- Moved `POST /api/task-attempts/start` into `TaskAttemptController`, `StartTaskAttemptRequest`, and `StartedTaskAttemptResource`, preserving the existing `200` response status for started attempts.
+- Moved `POST /api/task-attempts/{taskAttempt}/submit` into `TaskAttemptController`, `SubmitTaskAttemptRequest`, and `TaskAttemptResultResource`.
+- Preserved deterministic numeric grading, unsure/skipped handling, review scheduling, mastery state updates, and the existing feedback response fields.
+- Left Review due/read/snooze/answer and Progress route closures for later smaller extraction batches.
+
+Commit:
+
+- Recorded in this route extraction commit.
+
+Checks:
+
+- `php artisan test --filter='TaskAttemptFlowTest|MvpLearningLoopTest|ReviewSchedulerTest|TaskGraderTest|TodaySelectorTest'` passed before the refactor: 16 tests, 295 assertions.
+- After initial extraction, focused tests caught Laravel Resource `201` statuses for newly created Enrollment and TaskAttempt models; controllers now explicitly preserve the existing `200` status.
+- `php artisan test --filter='TaskAttemptFlowTest|MvpLearningLoopTest|ReviewSchedulerTest|TaskGraderTest|TodaySelectorTest'` passed after the fix: 16 tests, 295 assertions.
+- `php artisan test --filter='OwnershipAndGuardrailTest|ReviewVersioningTest|ReviewDueApiTest'` passed: 11 tests, 118 assertions.
+
+Open risks:
+
+- Backend issue `torbenseer/nuvio-backend#6` remains partially open until Review and Progress route closures are extracted.
+- `SubmitTaskAttemptRequest` now owns attempt authorization; broader validation and ownership matrix hardening remains covered by backend issue `torbenseer/nuvio-backend#4`.
+
+Next:
+
+- Continue backend issue `torbenseer/nuvio-backend#6` with Review due/read/snooze/answer extraction, then Progress extraction.
