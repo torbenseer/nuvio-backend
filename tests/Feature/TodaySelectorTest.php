@@ -115,10 +115,9 @@ class TodaySelectorTest extends TestCase
         $path = LearningPath::query()->firstOrFail();
         $node = LearningNode::query()->firstOrFail();
         $longTask = Task::query()->firstOrFail();
-        $longTask->forceFill([
-            'difficulty' => 1,
-            'estimated_minutes' => 25,
-        ])->save();
+
+        Task::query()->update(['estimated_minutes' => 25]);
+        $longTask->forceFill(['difficulty' => 1])->save();
 
         $shortTask = Task::query()->create([
             'slug' => 'red-mode-short-linear-equation',
@@ -168,10 +167,9 @@ class TodaySelectorTest extends TestCase
         ]);
         $path = LearningPath::query()->firstOrFail();
         $task = Task::query()->firstOrFail();
-        $task->forceFill([
-            'difficulty' => 1,
-            'estimated_minutes' => 25,
-        ])->save();
+
+        Task::query()->update(['estimated_minutes' => 25]);
+        $task->forceFill(['difficulty' => 1])->save();
 
         Enrollment::query()->create([
             'user_id' => $user->id,

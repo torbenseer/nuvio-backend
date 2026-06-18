@@ -32,7 +32,7 @@ class LearningNodeApiTest extends TestCase
         $response = $this->actingAs($user)
             ->getJson('/api/nodes')
             ->assertOk()
-            ->assertJsonCount(1, 'data')
+            ->assertJsonCount(3, 'data')
             ->assertJsonPath('data.0.slug', 'solve-linear-equations')
             ->assertJsonPath('data.0.type', 'skill')
             ->assertJsonPath('data.0.title', 'Lineare Gleichungen lösen')
@@ -49,7 +49,7 @@ class LearningNodeApiTest extends TestCase
         $response = $this->actingAs($user)
             ->getJson('/api/nodes?type=skill')
             ->assertOk()
-            ->assertJsonCount(1, 'data')
+            ->assertJsonCount(3, 'data')
             ->assertJsonPath('data.0.slug', 'solve-linear-equations')
             ->assertJsonPath('data.0.type', 'skill')
             ->json();
@@ -80,7 +80,7 @@ class LearningNodeApiTest extends TestCase
         $response = $this->actingAs($user)
             ->getJson('/api/nodes?subject=german-math')
             ->assertOk()
-            ->assertJsonCount(1, 'data')
+            ->assertJsonCount(3, 'data')
             ->assertJsonPath('data.0.slug', 'solve-linear-equations')
             ->json();
 
@@ -206,14 +206,14 @@ class LearningNodeApiTest extends TestCase
             ->assertOk()
             ->json();
 
+        $this->assertContains($task->id, array_column($response['data'], 'id'));
+        $this->assertCount(2, $response['data']);
         $this->assertSame([
-            [
-                'id' => $task->id,
-                'type' => 'numeric',
-                'difficulty' => 1,
-                'estimated_minutes' => 5,
-            ],
-        ], $response['data']);
+            'id',
+            'type',
+            'difficulty',
+            'estimated_minutes',
+        ], array_keys($response['data'][0]));
         $this->assertLearningNodeResponseContainsNoExcludedFields($response);
     }
 
@@ -254,7 +254,10 @@ class LearningNodeApiTest extends TestCase
             ->assertOk()
             ->json('data');
 
-        $this->assertSame([$activeTask->id], array_column($response, 'id'));
+        $ids = array_column($response, 'id');
+
+        $this->assertContains($activeTask->id, $ids);
+        $this->assertNotContains($inactiveTask->id, $ids);
     }
 
     public function test_learning_node_tasks_do_not_expose_answers_progress_pressure_or_gamification_fields(): void

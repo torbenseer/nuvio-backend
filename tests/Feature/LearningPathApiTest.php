@@ -38,7 +38,7 @@ class LearningPathApiTest extends TestCase
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.slug', 'algebra-foundations')
             ->assertJsonPath('data.0.subject', 'German Math')
-            ->assertJsonPath('data.0.node_count', 1)
+            ->assertJsonPath('data.0.node_count', 3)
             ->json();
 
         $this->assertLearningPathResponseContainsNoExcludedFields($response);

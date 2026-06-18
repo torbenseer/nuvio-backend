@@ -826,3 +826,35 @@ Open risks:
 Next:
 
 - Close backend issue `torbenseer/nuvio-backend#4` after the full backend suite passes, then continue B4 with backend issue `#7`.
+
+## 2026-06-18 - B4 Algebra Foundations Seed Breadth
+
+Status: completed.
+
+Changed:
+
+- Started backend issue `torbenseer/nuvio-backend#7` with the seed breadth slice.
+- Expanded the German Algebra Foundations seed from one LearningNode and one numeric Task to three ordered LearningNodes and six numeric Tasks.
+- Added prerequisite NodeRelations from linear equations to equations with parentheses, then to text-modeled linear equations.
+- Kept the original `solve-linear-equations` node and `solve-2x-plus-3-equals-11` task first so the V1 learning loop remains stable.
+- Added `SeedContentTest` coverage for path breadth, subject membership, ordered path nodes, prerequisite relations, active numeric TaskVersions, answer schemas, explanations, and Task-to-LearningNode links.
+- Updated Learning Path, Learning Node, and Today tests for the broader seed.
+- Updated `docs/00_START_HERE.md` to reflect the expanded seed while keeping content validation open.
+
+Commit:
+
+- Recorded in this seed breadth commit.
+
+Checks:
+
+- `php artisan test --filter=SeedContentTest` passed: 2 tests, 107 assertions.
+- `php artisan test --filter='LearningPathApiTest|LearningNodeApiTest|TodaySelectorTest|MvpLearningLoopTest|TaskAttemptFlowTest'` passed: 38 tests, 636 assertions.
+
+Open risks:
+
+- Backend issue `torbenseer/nuvio-backend#7` remains open for content validation tooling over slugs, references, task schemas, task-node links, and answer schemas.
+- Backend issue `torbenseer/nuvio-backend#1` still needs full Sanctum/CORS hardening.
+
+Next:
+
+- Continue backend issue `torbenseer/nuvio-backend#7` with a validation-only content service or command that can fail invalid seed/content definitions before publication.
