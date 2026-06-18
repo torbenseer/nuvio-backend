@@ -533,3 +533,37 @@ Open risks:
 Next:
 
 - Close backend issue `torbenseer/nuvio-backend#2`, then continue B4 with due reviews/snooze (`#5`) or maintainability extraction (`#6`).
+
+## 2026-06-18 - B4 Review Due And Snooze APIs
+
+Status: completed.
+
+Changed:
+
+- Added `GET /api/reviews/due` for authenticated learners with the canonical `{ "data": [...], "meta": { "returned": ..., "cap": ... } }` response shape.
+- Defaulted due review listing to a small cap of three and validated optional `limit` with a maximum of 10.
+- Listed only the authenticated user's `scheduled` Reviews with `due_at <= now()`, ordered by oldest due date, and omitted hidden backlog counts.
+- Added `POST /api/reviews/{id}/snooze` with 15 to 1440 minute validation.
+- Made snooze move `due_at` from the current time while preserving `status = scheduled` and without changing MasteryState or creating attempts.
+- Added guardrail coverage that due/snooze responses do not expose answers, hidden backlog counts, pressure fields, mastery scores, or gamification fields.
+- Completed backend issue `torbenseer/nuvio-backend#5`.
+
+Commit:
+
+- `8bdcdaf feat: add review due snooze apis`
+
+Checks:
+
+- `php artisan test --filter=ReviewDueApiTest` passed: 5 tests, 64 assertions.
+- `php artisan test --filter='ReviewDueApiTest|MvpLearningLoopTest|TodaySelectorTest|PathProgressApiTest|OwnershipAndGuardrailTest|ReviewVersioningTest|ReviewSchedulerTest'` passed: 25 tests, 422 assertions.
+- `php artisan test` passed: 65 tests, 810 assertions.
+
+Open risks:
+
+- Due Review prioritization is currently ordered by due date. The richer Review Engine priority list for active enrollments, lower mastery states, and shorter duration remains a possible follow-up if due volume grows.
+- Review routes still live in `routes/api.php`; controller/FormRequest/Resource extraction remains covered by backend issue `torbenseer/nuvio-backend#6`.
+- Full validation and ownership matrix hardening remains covered by backend issue `torbenseer/nuvio-backend#4`.
+
+Next:
+
+- Close backend issue `torbenseer/nuvio-backend#5`, then continue B4 with either the focused Review route extraction slice from #6 or content validation/seed breadth from #7.

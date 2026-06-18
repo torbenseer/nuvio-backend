@@ -14,6 +14,7 @@ Status: **Current**
 - Boot/status, auth user, Today, task attempt, review, progress, review versioning, and guardrail tests exist.
 - Real V1 learning API routes exist for a pre-provisioned or authenticated learner.
 - B4 preference, Today mode, Learning Path, Learning Node, Node Task, Node Prerequisite, and Path Progress routes exist with focused tests.
+- B4 review due and review snooze routes exist with focused tests.
 - Web session login/logout routes exist with focused tests, but full Sanctum package/config/CORS hardening remains B4.
 - Frontend is planning-only until explicitly started against the real V1 subset.
 
@@ -59,10 +60,9 @@ Product guardrail for the completed V1 tickets:
 Status: **B4 hardening**
 
 1. Complete full Sanctum package/configuration, stateful domains, CORS credentials, and browser-origin hardening.
-2. Add review due and snooze APIs.
-3. Expand validation and ownership matrices across the full canonical route set.
-4. Add content validation and expand the small Algebra Foundations seed.
-5. Improve maintainability by extracting route closures into focused controllers, Form Requests, API Resources, and services in small endpoint-group commits.
+2. Expand validation and ownership matrices across the full canonical route set.
+3. Add content validation and expand the small Algebra Foundations seed.
+4. Improve maintainability by extracting route closures into focused controllers, Form Requests, API Resources, and services in small endpoint-group commits.
 
 ## Active API Subset
 
@@ -88,8 +88,8 @@ Status: **B4 hardening**
 | `GET /api/nodes/{id}` | implemented |
 | `GET /api/nodes/{id}/tasks` | implemented |
 | `GET /api/nodes/{id}/prerequisites` | implemented |
-| `GET /api/reviews/due` | B4 hardening |
-| `POST /api/reviews/{id}/snooze` | B4 hardening |
+| `GET /api/reviews/due` | implemented |
+| `POST /api/reviews/{id}/snooze` | implemented |
 | `GET /api/progress/paths/{learningPath}` | implemented |
 | AI, simulations, custom tasks, gamification, CMS, payments, community, public signup, mobile app | later |
 

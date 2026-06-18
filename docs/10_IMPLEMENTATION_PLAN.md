@@ -575,7 +575,7 @@ Out of scope:
 
 ### Ticket 6.2: Add Review API
 
-Status: **V1 required** for `GET /api/reviews/{id}` and `POST /api/reviews/{id}/answer`. **B4 hardening** for `GET /api/reviews/due` and `POST /api/reviews/{id}/snooze`.
+Status: **Current** for `GET /api/reviews/{id}`, `POST /api/reviews/{id}/answer`, `GET /api/reviews/due`, and `POST /api/reviews/{id}/snooze`.
 
 Goal:
 

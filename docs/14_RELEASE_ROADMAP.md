@@ -35,6 +35,7 @@ The current backend has completed V1 Integrated Learning Loop:
 - V1 Today, Start Path, Task, TaskAttempt, Review, and Progress Summary routes.
 - V1 service and feature tests, including `MvpLearningLoopTest`, Today selection, task grading, review scheduling, ownership/guardrail smoke coverage, and review TaskVersion pinning.
 - Web session login/logout routes have focused tests; full Sanctum package/configuration and cross-origin SPA hardening remain B4.
+- Review due and review snooze routes have focused tests; snooze moves scheduling only and does not improve MasteryState.
 
 The frontend repository is planning-only. Application code, scaffold files, runtime dependencies, build configuration, and package manifests should still wait until frontend implementation is explicitly requested against the real V1 subset.
 
@@ -88,7 +89,7 @@ Status: **B4 hardening**
 
 B4 still requires:
 
-- Full `docs/05_API_SPEC.md` route set in backend routes.
+- Remaining `docs/05_API_SPEC.md` route hardening in backend routes.
 - API tests for the full route set.
 - Validation coverage for malformed requests.
 - Ownership isolation coverage for learner-owned state.
