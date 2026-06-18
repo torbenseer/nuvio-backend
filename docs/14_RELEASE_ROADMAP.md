@@ -34,7 +34,7 @@ The current backend has completed V1 Integrated Learning Loop:
 - Minimal German Algebra Foundations seed content.
 - V1 Today, Start Path, Task, TaskAttempt, Review, and Progress Summary routes.
 - V1 service and feature tests, including `MvpLearningLoopTest`, Today selection, task grading, review scheduling, ownership/guardrail smoke coverage, and review TaskVersion pinning.
-- Web session login/logout routes have focused tests; full Sanctum package/configuration and cross-origin SPA hardening remain B4.
+- Sanctum SPA session auth, credentialed CORS, stateful frontend domains, CSRF cookie, login/logout, and cross-origin authenticated API flow have focused tests.
 - Review due and review snooze routes have focused tests; snooze moves scheduling only and does not improve MasteryState.
 
 The frontend repository is planning-only. Application code, scaffold files, runtime dependencies, build configuration, and package manifests should still wait until frontend implementation is explicitly requested against the real V1 subset.
@@ -85,18 +85,19 @@ Exit criteria:
 
 ### B4 API Hardening
 
-Status: **B4 hardening**
+Status: **completed**
 
-B4 still requires:
+B4 completed:
 
-- Remaining `docs/05_API_SPEC.md` route hardening in backend routes.
+- Full `docs/05_API_SPEC.md` route hardening in backend routes.
 - API tests for the full route set.
 - Validation coverage for malformed requests.
 - Ownership isolation coverage for learner-owned state.
 - No answer leaks from task or review read APIs.
 - Deterministic grading, review scheduling, Today selection, and progress updates.
 - Motivation Without Pressure guardrails preserved across Today, Review, Progress, and copy fixtures.
-- Playful Without Pressure guardrails preserved across B4 Completion States and Mastery Moments.
+- Content validation tooling for the seeded SkillGraph content.
+- Sanctum SPA session auth with credentialed CORS and stateful frontend-domain hardening.
 - Documentation aligned to implemented behavior.
 
 ### Fun Without Pressure Priority

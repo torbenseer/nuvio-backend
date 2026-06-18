@@ -25,7 +25,7 @@ Route::get('/status', function (): array {
     ];
 });
 
-Route::middleware(['web', 'auth'])->group(function (): void {
+Route::middleware(['auth:sanctum'])->group(function (): void {
     Route::get('/user', UserController::class);
     Route::put('/user/preferences', UserPreferenceController::class);
     Route::get('/today', TodayController::class);

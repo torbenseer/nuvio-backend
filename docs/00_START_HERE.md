@@ -15,17 +15,17 @@ Status: **Current**
 - Real V1 learning API routes exist for a pre-provisioned or authenticated learner.
 - B4 preference, Today mode, Learning Path, Learning Node, Node Task, Node Prerequisite, and Path Progress routes exist with focused tests.
 - B4 review due and review snooze routes exist with focused tests.
-- Web session login/logout routes exist with focused tests, but full Sanctum package/config/CORS hardening remains B4.
+- Sanctum SPA session auth, credentialed CORS, stateful frontend domains, login/logout, CSRF cookie, and authenticated cross-origin API flow are implemented and tested.
 - Frontend is planning-only until explicitly started against the real V1 subset.
 - B4 Algebra Foundations seed breadth now includes three LearningNodes, six numeric Tasks, prerequisite NodeRelations, and validation-only content tooling.
 
 ## Active Goal
 
-Status: **B4 hardening / frontend readiness**
+Status: **B4 complete / frontend readiness**
 
-V1 is complete. The next backend goal is **B4 API Hardening** while the next cross-repo goal can be the first frontend slice against the real V1 subset when explicitly requested.
+V1 and B4 API hardening are complete. The next cross-repo goal can be the first frontend slice against the real V1/B4 API subset when explicitly requested.
 
-B4 must complete the full canonical API route set and hardening gates before Private Alpha readiness.
+B4 completed the full canonical API route set and hardening gates required before F2/A1 readiness.
 
 The implemented V1 loop is:
 
@@ -58,11 +58,10 @@ Product guardrail for the completed V1 tickets:
 
 ## Next Backend Tickets
 
-Status: **B4 hardening**
+Status: **integration follow-up**
 
-1. Complete full Sanctum package/configuration, stateful domains, CORS credentials, and browser-origin hardening.
-2. Keep the first frontend slice aligned to the real V1/B4 API contracts once frontend implementation starts.
-3. Continue any remaining B4 hardening gaps found by integration, without adding pressure mechanics.
+1. Keep the first frontend slice aligned to the real V1/B4 API contracts once frontend implementation starts.
+2. Continue any remaining integration gaps found by real frontend/backend smoke testing, without adding pressure mechanics.
 
 ## Active API Subset
 

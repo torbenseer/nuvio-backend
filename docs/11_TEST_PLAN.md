@@ -112,6 +112,7 @@ Assertions:
 
 Current B4 matrix anchors:
 
+- `AuthSessionTest` covers the Sanctum CSRF cookie route, credentialed CORS for the configured frontend origin, unconfigured-origin CORS hardening, SPA login, logout, and authenticated cross-origin API requests.
 - `AuthenticatedApiMatrixTest` covers `401` rejection across all learner-owned API routes except public `GET /api/status`.
 - `UserEndpointTest` covers user preference auth, valid updates, and locale/timezone validation.
 - `TodayModeTest` and `TodaySelectorTest` cover Energy Mode validation, Today caps, pressure-field guardrails, and unsupported Today query filters.

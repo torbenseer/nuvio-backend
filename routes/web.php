@@ -8,8 +8,6 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/sanctum/csrf-cookie', fn () => response()->noContent());
-
 Route::post('/login', function (Request $request) {
     $credentials = $request->validate([
         'email' => ['required', 'email'],

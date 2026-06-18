@@ -127,7 +127,7 @@ Out of scope:
 
 ### Ticket 0.2: Add Sanctum SPA Auth And Preferences Contract
 
-Status: **V1 required** for `GET /api/user`, protected endpoint rejection, and locale/timezone defaults. **B4 hardening** for `PUT /api/user/preferences` if preference persistence is deferred from V1.
+Status: **completed** for `GET /api/user`, protected endpoint rejection, locale/timezone defaults, `PUT /api/user/preferences`, Sanctum SPA session auth, credentialed CORS, stateful frontend domains, login/logout, and CSRF flow.
 
 Goal:
 

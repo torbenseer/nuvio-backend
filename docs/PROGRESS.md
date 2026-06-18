@@ -889,3 +889,36 @@ Open risks:
 Next:
 
 - Run the full backend suite, close backend issue `torbenseer/nuvio-backend#7` if green, then update the root backend submodule pointer.
+
+## 2026-06-18 - B4 Sanctum SPA And CORS Hardening
+
+Status: completed.
+
+Changed:
+
+- Completed backend issue `torbenseer/nuvio-backend#1` by installing `laravel/sanctum` and publishing its package configuration and migration.
+- Enabled Laravel's stateful Sanctum API middleware and moved authenticated learner API routes from `web` plus `auth` to `auth:sanctum`.
+- Removed the local `/sanctum/csrf-cookie` stub so the package-owned CSRF route handles SPA cookie bootstrapping.
+- Added credentialed CORS configuration for the configured frontend origin and documented `FRONTEND_URL`, `SANCTUM_STATEFUL_DOMAINS`, and `CORS_ALLOWED_ORIGINS` in `.env.example`.
+- Added `HasApiTokens` to `User` for the complete Sanctum model integration.
+- Expanded `AuthSessionTest` to cover CSRF cookie issuance, SPA login, logout, authenticated cross-origin `GET /api/user`, cross-origin `PUT /api/user/preferences`, allowed credentialed CORS preflight, and unconfigured-origin hardening.
+- Updated B4 status documentation now that the canonical API route set, validation/ownership matrix, content validation, and Sanctum/CORS hardening gates are complete.
+
+Commit:
+
+- Recorded in this Sanctum/CORS hardening commit.
+
+Checks:
+
+- `php artisan test --filter=AuthSessionTest` passed: 6 tests, 48 assertions.
+- `php artisan test --filter='AuthSessionTest|UserEndpointTest|AuthenticatedApiMatrixTest'` passed: 12 tests, 87 assertions.
+- `php artisan test` passed: 95 tests, 1080 assertions.
+
+Open risks:
+
+- Real browser integration still needs F2 smoke coverage from the frontend repository against a running backend.
+- Production deployment values for `APP_URL`, `FRONTEND_URL`, `SANCTUM_STATEFUL_DOMAINS`, `CORS_ALLOWED_ORIGINS`, `SESSION_DOMAIN`, and `SESSION_SECURE_COOKIE` must be set per environment.
+
+Next:
+
+- Close backend issue `torbenseer/nuvio-backend#1`, update the root backend submodule pointer, then start frontend issue `torbenseer/nuvio-frontend#1` when frontend implementation is explicitly requested.
