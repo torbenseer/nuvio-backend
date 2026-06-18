@@ -401,6 +401,38 @@ Route::middleware(['web', 'auth'])->group(function (): void {
         return ['data' => $response];
     });
 
+    Route::get('/reviews/due', function (Request $request): array {
+        $validated = $request->validate([
+            'limit' => ['sometimes', 'integer', 'min:1', 'max:10'],
+        ]);
+        $limit = (int) ($validated['limit'] ?? 3);
+
+        $reviews = Review::query()
+            ->where('user_id', $request->user()->id)
+            ->where('status', 'scheduled')
+            ->where('due_at', '<=', Carbon::now())
+            ->with(['learningNode', 'task'])
+            ->orderBy('due_at')
+            ->limit($limit)
+            ->get();
+
+        return [
+            'data' => $reviews->map(fn (Review $review): array => [
+                'id' => $review->id,
+                'learning_node_id' => $review->learning_node_id,
+                'task_id' => $review->task_id,
+                'due_at' => $review->due_at?->toJSON(),
+                'estimated_minutes' => $review->task?->estimated_minutes
+                    ?? $review->learningNode?->estimated_minutes
+                    ?? 5,
+            ])->all(),
+            'meta' => [
+                'returned' => $reviews->count(),
+                'cap' => $limit,
+            ],
+        ];
+    });
+
     Route::get('/reviews/{review}', function (Request $request, Review $review): array {
         abort_unless($review->user_id === $request->user()->id, 403);
 
@@ -423,6 +455,30 @@ Route::middleware(['web', 'auth'])->group(function (): void {
                     'estimated_minutes' => $task->estimated_minutes,
                 ],
                 'due_at' => $review->due_at?->toJSON(),
+            ],
+        ];
+    });
+
+    Route::post('/reviews/{review}/snooze', function (Request $request, Review $review): array {
+        abort_unless($review->user_id === $request->user()->id, 403);
+
+        if ($review->status !== 'scheduled') {
+            abort(409, 'Review is not snoozable.');
+        }
+
+        $validated = $request->validate([
+            'minutes' => ['required', 'integer', 'min:15', 'max:1440'],
+        ]);
+
+        $review->forceFill([
+            'due_at' => Carbon::now()->addMinutes((int) $validated['minutes']),
+        ])->save();
+
+        return [
+            'data' => [
+                'id' => $review->id,
+                'due_at' => $review->due_at?->toJSON(),
+                'status' => $review->status,
             ],
         ];
     });
