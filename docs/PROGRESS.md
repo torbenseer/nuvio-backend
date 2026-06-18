@@ -567,3 +567,34 @@ Open risks:
 Next:
 
 - Close backend issue `torbenseer/nuvio-backend#5`, then continue B4 with either the focused Review route extraction slice from #6 or content validation/seed breadth from #7.
+
+## 2026-06-18 - B4 User And Today Route Extraction
+
+Status: completed.
+
+Changed:
+
+- Started backend issue `torbenseer/nuvio-backend#6` with the first focused route-closure extraction batch.
+- Moved `GET /api/user` into `UserController` and `UserResource`.
+- Moved `PUT /api/user/preferences` into `UserPreferenceController`, `UpdateUserPreferenceRequest`, and `UserPreferenceResource`.
+- Moved `GET /api/today` into `TodayController` and `TodayActionResource`, preserving the existing `meta.limit` response.
+- Moved `POST /api/today/mode` into `TodayModeController`, `SetTodayModeRequest`, and `TodayModeResource`.
+- Left Learning Path, Node, Task Attempt, Review, and Progress route closures for later smaller extraction batches.
+
+Commit:
+
+- Recorded in this route extraction commit.
+
+Checks:
+
+- `php artisan test --filter='UserEndpointTest|TodayModeTest|TodaySelectorTest'` passed before the refactor: 14 tests, 235 assertions.
+- `php artisan test --filter='UserEndpointTest|TodayModeTest|TodaySelectorTest'` passed after the refactor: 14 tests, 235 assertions.
+
+Open risks:
+
+- Backend issue `torbenseer/nuvio-backend#6` remains partially open until the remaining Learning Path/Node, Enrollment/Task Attempt, Review, and Progress closures are extracted.
+- Full validation and ownership matrix hardening remains covered by backend issue `torbenseer/nuvio-backend#4`.
+
+Next:
+
+- Continue backend issue `torbenseer/nuvio-backend#6` with the next coherent extraction batch, likely Learning Path and Learning Node read APIs.

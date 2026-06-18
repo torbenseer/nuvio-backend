@@ -1,5 +1,9 @@
 <?php
 
+use App\Http\Controllers\TodayController;
+use App\Http\Controllers\TodayModeController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\UserPreferenceController;
 use App\Models\Enrollment;
 use App\Models\LearningNode;
 use App\Models\LearningPath;
@@ -13,7 +17,6 @@ use App\Services\Progress\ProgressSummary;
 use App\Services\Progress\PathProgress;
 use App\Services\Review\ReviewScheduler;
 use App\Services\Tasks\TaskGrader;
-use App\Services\Today\TodaySelector;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -34,60 +37,10 @@ Route::get('/status', function (): array {
 });
 
 Route::middleware(['web', 'auth'])->group(function (): void {
-    Route::get('/user', function (Request $request): array {
-        $user = $request->user();
-
-        return [
-            'data' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'locale' => $user->locale ?? 'de',
-                'timezone' => $user->timezone ?? 'Europe/Berlin',
-            ],
-        ];
-    });
-
-    Route::put('/user/preferences', function (Request $request): array {
-        $validated = $request->validate([
-            'locale' => ['required', 'string', 'in:de,en'],
-            'timezone' => ['required', 'string', 'timezone'],
-        ]);
-
-        $request->user()->forceFill($validated)->save();
-
-        return [
-            'data' => [
-                'locale' => $validated['locale'],
-                'timezone' => $validated['timezone'],
-            ],
-        ];
-    });
-
-    Route::get('/today', function (Request $request, TodaySelector $selector): array {
-        return [
-            'data' => $selector->actionsFor($request->user()),
-            'meta' => [
-                'limit' => 3,
-            ],
-        ];
-    });
-
-    Route::post('/today/mode', function (Request $request): array {
-        $validated = $request->validate([
-            'mode' => ['required', 'string', 'in:red,yellow,green'],
-        ]);
-
-        $request->user()->forceFill([
-            'energy_mode' => $validated['mode'],
-        ])->save();
-
-        return [
-            'data' => [
-                'mode' => $validated['mode'],
-            ],
-        ];
-    });
+    Route::get('/user', UserController::class);
+    Route::put('/user/preferences', UserPreferenceController::class);
+    Route::get('/today', TodayController::class);
+    Route::post('/today/mode', TodayModeController::class);
 
     Route::get('/learning-paths', function (Request $request): array {
         $validated = $request->validate([
