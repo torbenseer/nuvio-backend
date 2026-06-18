@@ -1,14 +1,14 @@
 <?php
 
+use App\Http\Controllers\LearningNodeController;
+use App\Http\Controllers\LearningPathController;
 use App\Http\Controllers\TodayController;
 use App\Http\Controllers\TodayModeController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserPreferenceController;
 use App\Models\Enrollment;
-use App\Models\LearningNode;
 use App\Models\LearningPath;
 use App\Models\MasteryState;
-use App\Models\NodeRelation;
 use App\Models\Review;
 use App\Models\Task;
 use App\Models\TaskAttempt;
@@ -21,7 +21,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 Route::get('/status', function (): array {
@@ -41,155 +40,12 @@ Route::middleware(['web', 'auth'])->group(function (): void {
     Route::put('/user/preferences', UserPreferenceController::class);
     Route::get('/today', TodayController::class);
     Route::post('/today/mode', TodayModeController::class);
-
-    Route::get('/learning-paths', function (Request $request): array {
-        $validated = $request->validate([
-            'subject' => [
-                'sometimes',
-                'string',
-                Rule::exists('subjects', 'slug')->where('active', true),
-            ],
-        ]);
-
-        $paths = LearningPath::query()
-            ->with(['subject', 'pathNodes.learningNode'])
-            ->where('active', true)
-            ->when($validated['subject'] ?? null, function ($query, string $subject): void {
-                $query->whereHas('subject', function ($query) use ($subject): void {
-                    $query->where('slug', $subject)->where('active', true);
-                });
-            })
-            ->orderBy('id')
-            ->get();
-
-        return [
-            'data' => $paths->map(fn (LearningPath $path): array => [
-                'id' => $path->id,
-                'slug' => $path->slug,
-                'title' => $path->title,
-                'subject' => $path->subject?->name,
-                'estimated_minutes' => $path->estimated_minutes,
-                'node_count' => $path->pathNodes
-                    ->filter(fn ($pathNode): bool => (bool) $pathNode->learningNode?->active)
-                    ->count(),
-            ])->all(),
-        ];
-    });
-
-    Route::get('/learning-paths/{learningPath}', function (LearningPath $learningPath): array {
-        abort_unless($learningPath->active, 404);
-
-        $learningPath->load(['pathNodes.learningNode']);
-
-        return [
-            'data' => [
-                'id' => $learningPath->id,
-                'title' => $learningPath->title,
-                'nodes' => $learningPath->pathNodes
-                    ->filter(fn ($pathNode): bool => (bool) $pathNode->learningNode?->active)
-                    ->map(fn ($pathNode): array => [
-                        'id' => $pathNode->learningNode->id,
-                        'title' => $pathNode->learningNode->title,
-                        'position' => $pathNode->position,
-                    ])
-                    ->values()
-                    ->all(),
-            ],
-        ];
-    });
-
-    Route::get('/nodes', function (Request $request): array {
-        $validated = $request->validate([
-            'subject' => [
-                'sometimes',
-                'string',
-                Rule::exists('subjects', 'slug')->where('active', true),
-            ],
-            'type' => ['sometimes', 'string', 'in:skill'],
-        ]);
-
-        $nodes = LearningNode::query()
-            ->where('active', true)
-            ->when($validated['subject'] ?? null, function ($query, string $subject): void {
-                $query->whereHas('subjects', function ($query) use ($subject): void {
-                    $query->where('slug', $subject)->where('active', true);
-                });
-            })
-            ->when($validated['type'] ?? null, function ($query, string $type): void {
-                $query->where('type', $type);
-            })
-            ->orderBy('id')
-            ->get();
-
-        return [
-            'data' => $nodes->map(fn (LearningNode $node): array => [
-                'id' => $node->id,
-                'slug' => $node->slug,
-                'type' => $node->type,
-                'title' => $node->title,
-            ])->all(),
-        ];
-    });
-
-    Route::get('/nodes/{learningNode}', function (LearningNode $learningNode): array {
-        abort_unless($learningNode->active, 404);
-
-        $learningNode->load(['subjects' => function ($query): void {
-            $query->where('active', true)->orderBy('name');
-        }]);
-
-        return [
-            'data' => [
-                'id' => $learningNode->id,
-                'slug' => $learningNode->slug,
-                'type' => $learningNode->type,
-                'title' => $learningNode->title,
-                'description' => $learningNode->description,
-                'subjects' => $learningNode->subjects
-                    ->map(fn ($subject): string => $subject->name)
-                    ->values()
-                    ->all(),
-            ],
-        ];
-    });
-
-    Route::get('/nodes/{learningNode}/tasks', function (LearningNode $learningNode): array {
-        abort_unless($learningNode->active, 404);
-
-        $tasks = $learningNode->tasks()
-            ->where('tasks.active', true)
-            ->orderBy('tasks.id')
-            ->get();
-
-        return [
-            'data' => $tasks->map(fn (Task $task): array => [
-                'id' => $task->id,
-                'type' => $task->type,
-                'difficulty' => $task->difficulty,
-                'estimated_minutes' => $task->estimated_minutes,
-            ])->all(),
-        ];
-    });
-
-    Route::get('/nodes/{learningNode}/prerequisites', function (LearningNode $learningNode): array {
-        abort_unless($learningNode->active, 404);
-
-        $relations = $learningNode->prerequisiteRelations()
-            ->with('sourceNode')
-            ->whereHas('sourceNode', function ($query): void {
-                $query->where('active', true);
-            })
-            ->orderBy('source_node_id')
-            ->get();
-
-        return [
-            'data' => $relations->map(fn (NodeRelation $relation): array => [
-                'id' => $relation->sourceNode->id,
-                'title' => $relation->sourceNode->title,
-                'relation' => 'prerequisite',
-            ])->all(),
-        ];
-    });
+    Route::get('/learning-paths', [LearningPathController::class, 'index']);
+    Route::get('/learning-paths/{learningPath}', [LearningPathController::class, 'show']);
+    Route::get('/nodes', [LearningNodeController::class, 'index']);
+    Route::get('/nodes/{learningNode}', [LearningNodeController::class, 'show']);
+    Route::get('/nodes/{learningNode}/tasks', [LearningNodeController::class, 'tasks']);
+    Route::get('/nodes/{learningNode}/prerequisites', [LearningNodeController::class, 'prerequisites']);
 
     Route::post('/learning-paths/{learningPath}/start', function (Request $request, LearningPath $learningPath): array {
         abort_unless($learningPath->active, 404);

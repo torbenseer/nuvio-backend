@@ -598,3 +598,35 @@ Open risks:
 Next:
 
 - Continue backend issue `torbenseer/nuvio-backend#6` with the next coherent extraction batch, likely Learning Path and Learning Node read APIs.
+
+## 2026-06-18 - B4 Learning Path And Node Route Extraction
+
+Status: completed.
+
+Changed:
+
+- Continued backend issue `torbenseer/nuvio-backend#6` with the read-only Learning Path and Learning Node API extraction batch.
+- Moved `GET /api/learning-paths` and `GET /api/learning-paths/{learningPath}` into `LearningPathController`, `ListLearningPathsRequest`, `LearningPathSummaryResource`, and `LearningPathDetailResource`.
+- Moved `GET /api/nodes`, `GET /api/nodes/{learningNode}`, `GET /api/nodes/{learningNode}/tasks`, and `GET /api/nodes/{learningNode}/prerequisites` into `LearningNodeController`, `ListLearningNodesRequest`, and focused API Resources.
+- Preserved active-only filtering, subject/type validation, ordered path nodes, no-answer-leak node task responses, and prerequisite response shape.
+- Left Start Path enrollment, Task, Task Attempt, Review, and Progress route closures for later smaller extraction batches.
+
+Commit:
+
+- Recorded in this route extraction commit.
+
+Checks:
+
+- `php artisan test --filter='LearningPathApiTest|LearningNodeApiTest'` passed before the refactor: 19 tests, 313 assertions.
+- `php artisan test --filter='LearningPathApiTest|LearningNodeApiTest'` passed after the refactor: 19 tests, 313 assertions.
+- `php artisan test --filter='LearningPathApiTest|LearningNodeApiTest|TodaySelectorTest|PathProgressApiTest|OwnershipAndGuardrailTest'` passed: 35 tests, 598 assertions.
+- `php artisan route:list --path=api --except-vendor` showed the User, Today, Learning Path, and Learning Node APIs routed through controllers.
+
+Open risks:
+
+- Backend issue `torbenseer/nuvio-backend#6` remains partially open until Enrollment/Task Attempt, Review, and Progress closures are extracted.
+- Content validation and expanded seed breadth remain covered by backend issue `torbenseer/nuvio-backend#7`.
+
+Next:
+
+- Continue backend issue `torbenseer/nuvio-backend#6` with the Enrollment and Task/TaskAttempt extraction batch, or switch to validation matrix hardening if behavior coverage becomes more urgent.
